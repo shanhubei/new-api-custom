@@ -28,7 +28,13 @@ import {
   Space,
   Card,
 } from '@douyinfe/semi-ui';
-import { API, showError, showSuccess, timestamp2string } from '../../helpers';
+import {
+  API,
+  confirmSwitchToDefaultFrontend,
+  showError,
+  showSuccess,
+  timestamp2string,
+} from '../../helpers';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import { StatusContext } from '../../context/Status';
@@ -281,6 +287,7 @@ const OtherSetting = () => {
   };
 
   const switchToDefaultFrontend = () => {
+<<<<<<< HEAD
     Modal.confirm({
       title: t('切换到新版前端'),
       content: t('切换后页面会自动刷新，并进入新版前端。是否继续？'),
@@ -317,6 +324,14 @@ const OtherSetting = () => {
             FrontendTheme: false,
           }));
         }
+=======
+    confirmSwitchToDefaultFrontend(t, {
+      onLoadingChange: (loading) => {
+        setLoadingInput((loadingInput) => ({
+          ...loadingInput,
+          FrontendTheme: loading,
+        }));
+>>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
       },
     });
   };

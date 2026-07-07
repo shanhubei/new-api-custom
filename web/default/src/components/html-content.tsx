@@ -134,6 +134,14 @@ function sanitizeHtmlContent(
   return DOMPurify.sanitize(content)
 }
 
+<<<<<<< HEAD
+=======
+function syncDarkClass(wrapper: HTMLElement): void {
+  const isDark = document.documentElement.classList.contains('dark')
+  wrapper.classList.toggle('dark', isDark)
+}
+
+>>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 function IsolatedHtmlContent(props: {
   className?: string
   html: string
@@ -153,6 +161,7 @@ function IsolatedHtmlContent(props: {
         'style, link[rel="stylesheet"]'
       ),
     ].map((node) => node.cloneNode(true))
+<<<<<<< HEAD
     const contentTemplate = document.createElement('template')
     contentTemplate.innerHTML = `${isolatedContentBaseStyles}${props.html}`
 
@@ -160,6 +169,29 @@ function IsolatedHtmlContent(props: {
       ...applicationStyleNodes,
       contentTemplate.content
     )
+=======
+
+    const wrapper = document.createElement('div')
+    syncDarkClass(wrapper)
+    wrapper.innerHTML = props.html
+
+    const contentTemplate = document.createElement('template')
+    contentTemplate.innerHTML = isolatedContentBaseStyles
+
+    shadowRoot.replaceChildren(
+      ...applicationStyleNodes,
+      contentTemplate.content,
+      wrapper
+    )
+
+    const observer = new MutationObserver(() => syncDarkClass(wrapper))
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+>>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
   }, [props.html])
 
   return (

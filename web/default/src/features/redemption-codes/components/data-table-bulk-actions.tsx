@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+<<<<<<< HEAD
 import { type Table } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 import { useState, useMemo } from 'react'
@@ -35,6 +36,16 @@ import {
 import { deleteInvalidRedemptions } from '../api'
 import { type Redemption } from '../types'
 import { useRedemptions } from './redemptions-provider'
+=======
+import type { Table } from '@tanstack/react-table'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { CopyButton } from '@/components/copy-button'
+import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
+
+import type { Redemption } from '../types'
+>>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
@@ -44,11 +55,7 @@ export function DataTableBulkActions<TData>({
   table,
 }: DataTableBulkActionsProps<TData>) {
   const { t } = useTranslation()
-  const { triggerRefresh } = useRedemptions()
-  const [showDeleteInvalidConfirm, setShowDeleteInvalidConfirm] =
-    useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const selectedRows = table.getFilteredSelectedRowModel().rows
+  const selectedRows = table.getSelectedRowModel().rows
 
   const contentToCopy = useMemo(() => {
     const selectedCodes = selectedRows.map((row) => {
@@ -58,82 +65,17 @@ export function DataTableBulkActions<TData>({
     return selectedCodes.join('\n')
   }, [selectedRows])
 
-  const handleDeleteInvalid = async () => {
-    setIsDeleting(true)
-    try {
-      const result = await deleteInvalidRedemptions()
-
-      if (result.success) {
-        const count = result.data || 0
-        toast.success(
-          t('Successfully deleted {{count}} invalid redemption codes', {
-            count,
-          })
-        )
-        table.resetRowSelection()
-        triggerRefresh()
-        setShowDeleteInvalidConfirm(false)
-      }
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   return (
-    <>
-      <BulkActionsToolbar table={table} entityName={t('redemption code')}>
-        <CopyButton
-          value={contentToCopy}
-          variant='outline'
-          size='icon'
-          className='size-8'
-          tooltip={t('Copy selected codes')}
-          successTooltip={t('Codes copied!')}
-          aria-label={t('Copy selected codes')}
-        />
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant='destructive'
-                size='icon'
-                onClick={() => setShowDeleteInvalidConfirm(true)}
-                className='size-8'
-                aria-label={t('Delete invalid redemption codes')}
-                title={t('Delete invalid redemption codes')}
-              />
-            }
-          >
-            <Trash2 />
-            <span className='sr-only'>{t('Delete invalid codes')}</span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{t('Delete invalid codes (used/disabled/expired)')}</p>
-          </TooltipContent>
-        </Tooltip>
-      </BulkActionsToolbar>
-
-      <ConfirmDialog
-        destructive
-        open={showDeleteInvalidConfirm}
-        onOpenChange={setShowDeleteInvalidConfirm}
-        handleConfirm={handleDeleteInvalid}
-        isLoading={isDeleting}
-        className='max-w-md'
-        title={t('Delete Invalid Redemption Codes?')}
-        desc={
-          <>
-            {t('This will delete all')} <strong>{t('used')}</strong>,{' '}
-            <strong>{t('disabled')}</strong>
-            {t(', and')} <strong>{t('expired')}</strong>{' '}
-            {t('redemption codes.')}
-            <br />
-            {t('This action cannot be undone.')}
-          </>
-        }
-        confirmText={t('Delete Invalid')}
+    <BulkActionsToolbar table={table} entityName={t('redemption code')}>
+      <CopyButton
+        value={contentToCopy}
+        variant='outline'
+        size='icon'
+        className='size-8'
+        tooltip={t('Copy selected codes')}
+        successTooltip={t('Codes copied!')}
+        aria-label={t('Copy selected codes')}
       />
-    </>
+    </BulkActionsToolbar>
   )
 }

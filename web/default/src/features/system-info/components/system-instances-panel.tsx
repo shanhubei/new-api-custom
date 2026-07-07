@@ -47,6 +47,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+<<<<<<< HEAD
+=======
+import { toIntlLocale } from '@/i18n/languages'
+>>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { formatTimestampRelative, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -411,7 +415,7 @@ function SystemInstancesList(props: SystemInstancesTableProps) {
                   {formatTimestampRelative(
                     instance.last_seen_at,
                     'seconds',
-                    i18n.language
+                    toIntlLocale(i18n.language)
                   )}
                 </TableCell>
               </TableRow>
