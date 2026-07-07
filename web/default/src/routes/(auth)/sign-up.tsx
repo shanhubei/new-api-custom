@@ -16,11 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import { createFileRoute } from '@tanstack/react-router'
-=======
 import { createFileRoute, redirect } from '@tanstack/react-router'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 import { SignUp } from '@/features/auth/sign-up'
 import { useAuthStore } from '@/stores/auth-store'

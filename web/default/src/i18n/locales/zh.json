@@ -2241,10 +2241,7 @@
     "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.": "假设定价分组表里有三个分组：default（倍率 1.0）、premium（倍率 0.5）、vip（倍率 0.8）。账号在 vip 分组的用户享受用户级待遇，premium 则是一个更便宜的渠道池，用户建令牌时可以选它。",
     "Import to CC Switch": "填入 CC Switch",
     "Important": "重要",
-<<<<<<< HEAD
-=======
     "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.": "在 JSON 中，外层键是用户分组，内层键是计费分组。下面的示例表示：vip 用户按 standard 计费时用 0.8，按 premium 计费时用 0.3。",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "In Progress": "进行中",
     "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.": "在可视化编辑器中显示为「额外可见」和「屏蔽」。在 JSON 中，+:（或无前缀）表示添加分组，-: 表示移除分组。",
     "In:": "入：",
@@ -3722,11 +3719,8 @@
     "Reset {{count}} active subscriptions": "已重置 {{count}} 个有效订阅",
     "Reset 2FA": "重置 2FA",
     "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.": "要重置 {{username}} 的 2FA 吗？该用户必须重新设置 2FA 后才能继续使用。",
-<<<<<<< HEAD
-=======
     "Reset active {{plan}} subscriptions for this user?": "要重置该用户的有效 {{plan}} 订阅吗？",
     "Reset all active subscriptions under {{plan}}?": "要重置 {{plan}} 下的所有有效订阅吗？",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Reset all model prices?": "重置所有模型价格吗？",
     "Reset all model ratios?": "重置所有模型比例吗？",
     "Reset all settings to default values": "将所有设置重置为默认值",
@@ -4469,12 +4463,9 @@
     "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?": "这会将标签 \"{{tag}}\" 下所有 {{count}} 个渠道的权重更新为 {{value}}。继续吗？",
     "This year": "本年",
     "Thought for {{duration}} seconds": "思考了 {{duration}} 秒",
-<<<<<<< HEAD
-=======
     "Three calls made by the same user, whose user group is vip:": "同一个用户（用户分组为 vip）发起的三次调用：",
     "Three calls made by the same vip user. Assume the base price of one call is 10.": "同一个 vip 用户发起三次调用，假设模型单次调用基础价格为 10：",
     "Three groups; the override matrix has exactly one cell filled in (highlighted).": "三个分组；覆盖矩阵只填了一个格子（高亮显示）。",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Three steps to get started": "三步快速上手",
     "Throughput": "吞吐量",
     "Throughput by group": "各分组吞吐量",

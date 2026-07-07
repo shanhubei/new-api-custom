@@ -2241,10 +2241,7 @@
     "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.": "Представьте, что в таблице тарифов три группы: default (коэффициент 1,0), premium (коэффициент 0,5) и vip (коэффициент 0,8). Пользователи из группы vip получают привилегии на уровне аккаунта, а premium — более дешёвый пул каналов, который пользователи могут выбирать для своих токенов.",
     "Import to CC Switch": "Импорт в CC Switch",
     "Important": "Важно",
-<<<<<<< HEAD
-=======
     "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.": "В JSON внешний ключ — группа пользователя, внутренний — тарифная группа. Пример ниже означает: пользователи vip платят 0,8 по standard и 0,3 по premium.",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "In Progress": "Выполняется",
     "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.": "В визуальном редакторе это отображается как «Дополнительно видимая» и «Скрыта». В JSON префикс +: (или его отсутствие) добавляет группу, а -: удаляет её.",
     "In:": "Вх:",
@@ -3722,11 +3719,8 @@
     "Reset {{count}} active subscriptions": "Сброшено активных подписок: {{count}}",
     "Reset 2FA": "Сбросить 2FA",
     "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.": "Сбросить 2FA для {{username}}? Пользователь должен будет настроить 2FA заново, чтобы продолжить ее использовать.",
-<<<<<<< HEAD
-=======
     "Reset active {{plan}} subscriptions for this user?": "Сбросить активные подписки {{plan}} для этого пользователя?",
     "Reset all active subscriptions under {{plan}}?": "Сбросить все активные подписки по {{plan}}?",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Reset all model prices?": "Сбросить все цены моделей?",
     "Reset all model ratios?": "Сбросить все соотношения моделей?",
     "Reset all settings to default values": "Сбросить все настройки до значений по умолчанию",
@@ -4469,12 +4463,9 @@
     "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?": "Вес всех каналов ({{count}}) с тегом \"{{tag}}\" будет изменен на {{value}}. Продолжить?",
     "This year": "Этот год",
     "Thought for {{duration}} seconds": "Размышлял {{duration}} сек.",
-<<<<<<< HEAD
-=======
     "Three calls made by the same user, whose user group is vip:": "Три вызова одного пользователя с группой vip:",
     "Three calls made by the same vip user. Assume the base price of one call is 10.": "Три вызова одного пользователя vip. Пусть базовая цена одного вызова равна 10.",
     "Three groups; the override matrix has exactly one cell filled in (highlighted).": "Три группы; в матрице переопределений заполнена ровно одна ячейка (выделена).",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Three steps to get started": "Три шага для начала работы",
     "Throughput": "Пропускная способность",
     "Throughput by group": "Пропускная способность по группам",

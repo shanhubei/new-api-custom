@@ -17,11 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { Row } from '@tanstack/react-table'
-<<<<<<< HEAD
-import { Pencil, Power, PowerOff } from 'lucide-react'
-=======
 import { Pencil, Power, PowerOff, RotateCcw } from 'lucide-react'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -53,14 +49,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     setCurrentRow(row.original)
     setOpen('toggle-status')
   }
-<<<<<<< HEAD
-=======
 
   const handleResetSubscriptions = () => {
     setCurrentRow(row.original)
     setOpen('reset-subscriptions')
   }
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
   return (
     <div className='-ml-1.5 flex items-center gap-1'>
@@ -88,8 +81,6 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               variant='ghost'
               size='icon-sm'
               disabled={!complianceConfirmed}
-<<<<<<< HEAD
-=======
               onClick={handleResetSubscriptions}
               aria-label={t('Reset subscription quota')}
             />
@@ -107,7 +98,6 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               variant='ghost'
               size='icon-sm'
               disabled={!complianceConfirmed}
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
               onClick={handleToggleStatus}
               aria-label={toggleLabel}
               className={

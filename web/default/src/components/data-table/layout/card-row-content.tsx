@@ -16,11 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import type { Row } from '@tanstack/react-table'
-=======
 import type { Cell, Row } from '@tanstack/react-table'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import * as React from 'react'
 
 import { StatusBadgeTypeContext } from '@/components/status-badge'

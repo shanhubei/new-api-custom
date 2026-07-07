@@ -31,8 +31,6 @@ func TestValidateMultipartDirectNormalizesImageField(t *testing.T) {
 	require.Equal(t, []string{"https://example.com/first.png"}, storedReq.Images)
 	require.Equal(t, constant.TaskActionGenerate, info.Action)
 }
-<<<<<<< HEAD
-=======
 
 // TestTaskDurationBounds guards the billing invariant that user-supplied
 // video duration (a quota multiplier via OtherRatio "seconds") is bounded, so
@@ -97,4 +95,3 @@ func TestTaskDurationBounds(t *testing.T) {
 		})
 	}
 }
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102

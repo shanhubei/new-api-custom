@@ -2241,10 +2241,7 @@
     "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.": "料金表に3つのグループがあるとします：default（倍率 1.0）、premium（倍率 0.5）、vip（倍率 0.8）。アカウントが vip グループのユーザーはユーザーレベルの特典を受けられ、premium はユーザーがトークン用に選べる安いチャネルプールです。",
     "Import to CC Switch": "CC Switch にインポート",
     "Important": "重要",
-<<<<<<< HEAD
-=======
     "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.": "JSONでは外側のキーがユーザーグループ、内側のキーが課金グループです。以下の例は、vip ユーザーが standard として課金されると 0.8、premium として課金されると 0.3 を意味します。",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "In Progress": "処理中",
     "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.": "ビジュアルエディタでは「追加表示」と「非表示」として表示されます。JSONでは +:（または接頭辞なし）でグループを追加し、-: で削除します。",
     "In:": "入力：",
@@ -3722,11 +3719,8 @@
     "Reset {{count}} active subscriptions": "{{count}} 件の有効なサブスクリプションをリセットしました",
     "Reset 2FA": "2FAをリセット",
     "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.": "{{username}} の 2FA をリセットしますか？引き続き使用するには、2FA を再設定する必要があります。",
-<<<<<<< HEAD
-=======
     "Reset active {{plan}} subscriptions for this user?": "このユーザーの有効な {{plan}} サブスクリプションをリセットしますか？",
     "Reset all active subscriptions under {{plan}}?": "{{plan}} のすべての有効なサブスクリプションをリセットしますか？",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Reset all model prices?": "すべてのモデル価格をリセットしますか？",
     "Reset all model ratios?": "すべてのモデル比率をリセットしますか？",
     "Reset all settings to default values": "すべての設定をデフォルト値にリセット",
@@ -4469,12 +4463,9 @@
     "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?": "タグ \"{{tag}}\" の {{count}} 件すべてのチャネルの重みを {{value}} に更新します。続行しますか？",
     "This year": "今年",
     "Thought for {{duration}} seconds": "{{duration}} 秒間思考しました",
-<<<<<<< HEAD
-=======
     "Three calls made by the same user, whose user group is vip:": "同じユーザー（ユーザーグループは vip）による3回の呼び出し：",
     "Three calls made by the same vip user. Assume the base price of one call is 10.": "同じ vip ユーザーによる3回の呼び出し。1回の基本価格を 10 とします：",
     "Three groups; the override matrix has exactly one cell filled in (highlighted).": "3つのグループ。上書きマトリクスには1つのセルだけ値が入っています（ハイライト表示）。",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Three steps to get started": "3ステップで始める",
     "Throughput": "スループット",
     "Throughput by group": "グループ別スループット",

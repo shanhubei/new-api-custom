@@ -20,10 +20,7 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
-<<<<<<< HEAD
-=======
 import { convertDetectedLanguage } from './languages'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 import ja from './locales/ja.json'

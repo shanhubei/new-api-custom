@@ -1,10 +1,6 @@
 WEB_DIR = ./web/default
 WEB_CLASSIC_DIR = ./web/classic
-<<<<<<< HEAD
-BACKEND_DIR = .
-=======
 API_DIR = .
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 DEV_WEB_DEFAULT_PORT ?= 5173
 DEV_WEB_CLASSIC_PORT ?= 5174
 DEV_COMPOSE_FILE = docker-compose.dev.yml
@@ -14,15 +10,9 @@ DEV_POSTGRES_DB = new-api
 DEV_POSTGRES_USER = root
 DEV_SQLITE_PATH ?= one-api.db
 
-<<<<<<< HEAD
-.PHONY: all build-web build-web-classic build-all-web start-backend dev dev-api dev-api-rebuild dev-web dev-web-classic reset-setup
-
-all: build-all-web start-backend
-=======
 .PHONY: all build-web build-web-classic build-all-web start-api dev dev-api dev-api-rebuild dev-web dev-web-classic reset-setup
 
 all: build-all-web start-api
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 build-web:
 	@echo "Building default web..."

@@ -221,11 +221,8 @@ func main() {
 		}
 	}()
 
-<<<<<<< HEAD
-=======
 	time.Sleep(100 * time.Millisecond)
 
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 	common.LogStartupSuccess(startTime, port)
 
 	quit := make(chan os.Signal, 1)

@@ -19,11 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-<<<<<<< HEAD
-
-import { Button } from '@/components/ui/button'
-
-=======
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -31,7 +26,6 @@ import { Button } from '@/components/ui/button'
 
 import { deleteInvalidRedemptions } from '../api'
 import { ERROR_MESSAGES } from '../constants'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useRedemptions } from './redemptions-provider'
 
 export function RedemptionsPrimaryButtons() {

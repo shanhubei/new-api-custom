@@ -556,13 +556,6 @@ func (user *User) Insert(inviterId int) error {
 	return nil
 }
 
-<<<<<<< HEAD
-	user.finishInsert(inviterId)
-	return nil
-}
-
-=======
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 func (user *User) finishInsert(inviterId int) {
 	// 用户创建成功后，根据角色初始化边栏配置
 	// 需要重新获取用户以确保有正确的ID和Role

@@ -1,10 +1,7 @@
 package model
 
 import (
-<<<<<<< HEAD
-=======
 	"errors"
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -94,8 +91,6 @@ func TestUpdateUserSettingOnlyUpdatesSetting(t *testing.T) {
 	assert.Equal(t, 4, got.RequestCount)
 	assert.Equal(t, "zh", got.GetSetting().Language)
 }
-<<<<<<< HEAD
-=======
 
 func TestEnsureEmailAvailableRejectsExistingEmailCaseInsensitive(t *testing.T) {
 	setupUserUpdateTestState(t)
@@ -223,4 +218,3 @@ func TestResetUserPasswordByEmailRequiresSingleActiveMatch(t *testing.T) {
 	err = ResetUserPasswordByEmail("missing@example.com", "NewPassword123")
 	require.True(t, errors.Is(err, ErrEmailNotFound))
 }
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102

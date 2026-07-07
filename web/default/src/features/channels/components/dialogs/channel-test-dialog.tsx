@@ -32,9 +32,6 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react'
-<<<<<<< HEAD
-import { type ChangeEvent, useCallback, useMemo, useRef, useState } from 'react'
-=======
 import {
   type ChangeEvent,
   useCallback,
@@ -43,7 +40,6 @@ import {
   useRef,
   useState,
 } from 'react'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -1142,14 +1138,9 @@ function ChannelTestDialogContent({
                   <colgroup>
                     <col className='w-10 min-w-10' />
                     <col className='w-auto' />
-<<<<<<< HEAD
-                    <col className='w-70' />
-                    <col className='w-auto' />
-=======
                     <col className='w-28' />
                     <col className='w-80' />
                     <col className='w-px' />
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
                   </colgroup>
                 }
                 getColumnClassName={(columnId) =>

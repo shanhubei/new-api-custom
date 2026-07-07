@@ -1402,10 +1402,6 @@
     "已发起支付": "Payment initiated",
     "已发送到 Fluent": "Sent to Fluent",
     "已取消 Passkey 注册": "Passkey registration cancelled",
-<<<<<<< HEAD
-    "已切换到新版前端，正在跳转首页": "Switched to the new frontend, redirecting to home",
-=======
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "已同步到渠道": "Synced to Channel",
     "已启用": "Enabled",
     "已启用 Passkey，无需密码即可登录": "Passkey enabled, login without password",

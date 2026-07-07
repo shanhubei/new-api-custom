@@ -2241,10 +2241,7 @@
     "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.": "Giả sử bảng định giá có ba nhóm: default (hệ số 1.0), premium (hệ số 0.5) và vip (hệ số 0.8). Người dùng có tài khoản thuộc nhóm vip nhận ưu đãi cấp người dùng, còn premium là một nhóm kênh rẻ hơn mà người dùng có thể chọn cho token của mình.",
     "Import to CC Switch": "Nhập vào CC Switch",
     "Important": "Quan trọng",
-<<<<<<< HEAD
-=======
     "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.": "Trong JSON, khóa ngoài là nhóm người dùng, khóa trong là nhóm tính phí. Ví dụ dưới đây nghĩa là: người dùng vip trả 0.8 khi tính phí theo standard và 0.3 khi theo premium.",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "In Progress": "Đang xử lý",
     "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.": "Trong trình chỉnh sửa trực quan, các quy tắc này hiển thị là «Hiển thị thêm» và «Ẩn». Trong JSON, +: (hoặc không có tiền tố) thêm nhóm và -: xóa nhóm.",
     "In:": "Vào:",
@@ -3722,11 +3719,8 @@
     "Reset {{count}} active subscriptions": "Đã đặt lại {{count}} gói đăng ký đang hoạt động",
     "Reset 2FA": "Đặt lại 2FA",
     "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.": "Đặt lại 2FA cho {{username}}? Người dùng phải thiết lập lại 2FA để tiếp tục sử dụng.",
-<<<<<<< HEAD
-=======
     "Reset active {{plan}} subscriptions for this user?": "Đặt lại các gói đăng ký {{plan}} đang hoạt động của người dùng này?",
     "Reset all active subscriptions under {{plan}}?": "Đặt lại tất cả gói đăng ký đang hoạt động trong {{plan}}?",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Reset all model prices?": "Đặt lại tất cả giá mô hình?",
     "Reset all model ratios?": "Đặt lại tất cả tỷ lệ mô hình?",
     "Reset all settings to default values": "Đặt lại tất cả cài đặt về giá trị mặc định",
@@ -4469,12 +4463,9 @@
     "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?": "Thao tác này sẽ cập nhật trọng số thành {{value}} cho tất cả {{count}} kênh có thẻ \"{{tag}}\". Tiếp tục?",
     "This year": "Năm nay",
     "Thought for {{duration}} seconds": "Đã suy nghĩ trong {{duration}} giây",
-<<<<<<< HEAD
-=======
     "Three calls made by the same user, whose user group is vip:": "Ba cuộc gọi của cùng một người dùng, có nhóm người dùng là vip:",
     "Three calls made by the same vip user. Assume the base price of one call is 10.": "Ba cuộc gọi của cùng một người dùng vip. Giả sử giá cơ bản một cuộc gọi là 10.",
     "Three groups; the override matrix has exactly one cell filled in (highlighted).": "Ba nhóm; ma trận ghi đè chỉ có đúng một ô được điền (được tô sáng).",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Three steps to get started": "Ba bước để bắt đầu",
     "Throughput": "Thông lượng",
     "Throughput by group": "Thông lượng theo nhóm",

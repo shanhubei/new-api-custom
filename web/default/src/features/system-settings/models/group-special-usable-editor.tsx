@@ -16,9 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-=======
 import {
   AlertTriangle,
   ChevronDown,
@@ -26,7 +23,6 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

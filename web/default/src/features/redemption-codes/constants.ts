@@ -16,15 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import { type TFunction } from 'i18next'
-
-import { type StatusBadgeProps } from '@/components/status-badge'
-=======
 import type { TFunction } from 'i18next'
 
 import type { StatusBadgeProps } from '@/components/status-badge'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 // ============================================================================
 // Redemption Status Configuration

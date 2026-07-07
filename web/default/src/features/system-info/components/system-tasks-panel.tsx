@@ -38,10 +38,7 @@ import type {
   SystemTask,
   SystemTaskStatus,
 } from '@/features/system-settings/types'
-<<<<<<< HEAD
-=======
 import { toIntlLocale } from '@/i18n/languages'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { formatTimestampRelative, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 

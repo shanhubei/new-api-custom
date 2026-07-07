@@ -932,11 +932,7 @@ export function ChannelMutateDrawer({
     currentSystemPromptOverride
   )
   let fieldPassthroughConfigured = false
-<<<<<<< HEAD
-  if (currentType === 1) {
-=======
   if (currentType === 1 || currentType === 57) {
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     fieldPassthroughConfigured = Boolean(
       currentAllowServiceTier ||
       currentDisableStore ||
@@ -987,11 +983,7 @@ export function ChannelMutateDrawer({
       configured: extraSettingsConfigured,
     },
   ]
-<<<<<<< HEAD
-  if (currentType === 1 || currentType === 14) {
-=======
   if (currentType === 1 || currentType === 14 || currentType === 57) {
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     advancedNavChildren.push({
       id: ADVANCED_SETTINGS_SECTION_IDS.fieldPassthrough,
       title: t('Field passthrough controls'),
@@ -4114,13 +4106,9 @@ export function ChannelMutateDrawer({
                           </fieldset>
                         </div>
 
-<<<<<<< HEAD
-                        {(currentType === 1 || currentType === 14) && (
-=======
                         {(currentType === 1 ||
                           currentType === 14 ||
                           currentType === 57) && (
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
                           <div
                             id={ADVANCED_SETTINGS_SECTION_IDS.fieldPassthrough}
                             className={sideDrawerSectionClassName(
@@ -4164,11 +4152,7 @@ export function ChannelMutateDrawer({
                                   )}
                                 />
 
-<<<<<<< HEAD
-                                {currentType === 1 && (
-=======
                                 {(currentType === 1 || currentType === 57) && (
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
                                   <>
                                     <FormField
                                       control={form.control}

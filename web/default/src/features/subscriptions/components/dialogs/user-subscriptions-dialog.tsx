@@ -16,21 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import { Plus } from 'lucide-react'
-=======
 import { Ban, Plus, RotateCcw, Trash2 } from 'lucide-react'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-<<<<<<< HEAD
-import { StaticDataTable } from '@/components/data-table'
-=======
 import { DataTableRowActionMenu, StaticDataTable } from '@/components/data-table'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import {
   sideDrawerContentClassName,
   sideDrawerFormClassName,
@@ -59,10 +51,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
-<<<<<<< HEAD
-=======
 import { Switch } from '@/components/ui/switch'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { formatQuota } from '@/lib/format'
 
 import {

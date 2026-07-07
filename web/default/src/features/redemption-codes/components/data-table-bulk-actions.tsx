@@ -16,27 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-<<<<<<< HEAD
-import { type Table } from '@tanstack/react-table'
-import { Trash2 } from 'lucide-react'
-import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { CopyButton } from '@/components/copy-button'
-import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
-import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-
-import { deleteInvalidRedemptions } from '../api'
-import { type Redemption } from '../types'
-import { useRedemptions } from './redemptions-provider'
-=======
 import type { Table } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -45,7 +24,6 @@ import { CopyButton } from '@/components/copy-button'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 
 import type { Redemption } from '../types'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>

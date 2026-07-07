@@ -22,10 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
 import { RichContent } from '@/components/rich-content'
-<<<<<<< HEAD
-=======
 import { useTheme } from '@/context/theme-provider'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -76,18 +73,12 @@ export function Home() {
       return (
         <PublicLayout showMainContainer={false}>
           <iframe
-<<<<<<< HEAD
-=======
             ref={iframeRef}
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
             src={content}
             className='h-screen w-full border-none'
             title={t('Custom Home Page')}
             sandbox='allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts'
-<<<<<<< HEAD
-=======
             onLoad={syncIframePreferences}
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
           />
         </PublicLayout>
       )

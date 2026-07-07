@@ -17,13 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Code2, Eye, HelpCircle } from 'lucide-react'
-<<<<<<< HEAD
-import { memo, useCallback, useState } from 'react'
-import { type UseFormReturn } from 'react-hook-form'
-=======
 import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 import { useTranslation } from 'react-i18next'
 
 import {

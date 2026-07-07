@@ -2241,10 +2241,7 @@
     "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.": "Imagine the pricing table has three groups: default (ratio 1.0), premium (ratio 0.5), and vip (ratio 0.8). Users whose account is in the vip group get user-level perks, and premium is a cheaper channel pool that users can pick for their tokens.",
     "Import to CC Switch": "Import to CC Switch",
     "Important": "Important",
-<<<<<<< HEAD
-=======
     "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.": "In JSON, the user group is the outer key and the billing group is the inner key. The example below means: vip users pay 0.8 when billed as standard, and 0.3 when billed as premium.",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "In Progress": "In Progress",
     "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.": "In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.",
     "In:": "In:",
@@ -3722,11 +3719,8 @@
     "Reset {{count}} active subscriptions": "Reset {{count}} active subscriptions",
     "Reset 2FA": "Reset 2FA",
     "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.": "Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.",
-<<<<<<< HEAD
-=======
     "Reset active {{plan}} subscriptions for this user?": "Reset active {{plan}} subscriptions for this user?",
     "Reset all active subscriptions under {{plan}}?": "Reset all active subscriptions under {{plan}}?",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Reset all model prices?": "Reset all model prices?",
     "Reset all model ratios?": "Reset all model ratios?",
     "Reset all settings to default values": "Reset all settings to default values",
@@ -4469,12 +4463,9 @@
     "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?": "This will update the weight to {{value}} for all {{count}} channel(s) with tag \"{{tag}}\". Continue?",
     "This year": "This year",
     "Thought for {{duration}} seconds": "Thought for {{duration}} seconds",
-<<<<<<< HEAD
-=======
     "Three calls made by the same user, whose user group is vip:": "Three calls made by the same user, whose user group is vip:",
     "Three calls made by the same vip user. Assume the base price of one call is 10.": "Three calls made by the same vip user. Assume the base price of one call is 10.",
     "Three groups; the override matrix has exactly one cell filled in (highlighted).": "Three groups; the override matrix has exactly one cell filled in (highlighted).",
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
     "Three steps to get started": "Three steps to get started",
     "Throughput": "Throughput",
     "Throughput by group": "Throughput by group",

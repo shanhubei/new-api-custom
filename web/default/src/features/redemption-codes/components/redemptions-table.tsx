@@ -20,10 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-<<<<<<< HEAD
-=======
 import { toast } from 'sonner'
->>>>>>> becc18e3007e9812a7bb2dcfebefc6c19ad3f102
 
 import {
   DISABLED_ROW_DESKTOP,
