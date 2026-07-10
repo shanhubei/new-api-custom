@@ -377,4 +377,6 @@ func SetApiRouter(router *gin.Engine) {
 			deploymentsRoute.DELETE("/:id", controller.DeleteDeployment)
 		}
 	}
+
+	SetNewuserRouter(apiRouter, anonymousRequestBodyLimit)
 }

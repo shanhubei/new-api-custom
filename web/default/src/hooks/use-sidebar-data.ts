@@ -31,6 +31,7 @@ import {
   Settings,
   Ticket,
   User,
+  UserRound,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -107,6 +108,11 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
+          },
+          {
+            title: t('Third-Party Users'),
+            url: '/newusers',
+            icon: UserRound,
           },
           {
             title: t('Profile'),

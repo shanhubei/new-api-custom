@@ -93,6 +93,13 @@ var TelegramOAuthEnabled = false
 var TurnstileCheckEnabled = false
 var RegisterEnabled = true
 
+// Newuser 第三方 UI 增量模块（原有用户作为组织，映射 sk- Token）
+var NewuserEnabled = false
+var NewuserDefaultOwnerId = 0
+var NewuserJWTSecret = ""
+var NewuserJWTExpireHours = 168
+var NewuserOrgSelfRegisterEnabled = false
+
 var EmailDomainRestrictionEnabled = false // 是否启用邮箱域名限制
 var EmailAliasRestrictionEnabled = false  // 是否启用邮箱别名限制
 var EmailDomainWhitelist = []string{

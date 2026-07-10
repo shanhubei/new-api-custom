@@ -29,6 +29,9 @@ services:
       - ./data:/data
       - ./logs:/app/logs
     environment:
+      - NEWUSER_ENABLED=true
+       # 多租户不要加 NEWUSER_DEFAULT_OWNER_ID
+      - NEWUSER_ORG_SELF_REGISTER_ENABLED=true
       - SQL_DSN=postgresql://root:123456@postgres:5432/new-api # ⚠️ IMPORTANT: Change the password in production!
 #      - SQL_DSN=root:123456@tcp(mysql:3306)/new-api  # Point to the mysql service, uncomment if using MySQL
 #      - LOG_SQL_DSN=postgresql://root:123456@postgres:5432/new-api-log # OPTIONAL: If you want a separate database for logging, uncomment and set this
@@ -82,8 +85,8 @@ services:
       - pg_data:/var/lib/postgresql/data
     networks:
       - new-api-network
-#    ports:
-#      - "5432:5432"  # Uncomment if you need to access PostgreSQL from outside Docker
+    ports:
+      - "5432:5432"  # Uncomment if you need to access PostgreSQL from outside Docker
 
 #  mysql:
 #    image: mysql:8.2

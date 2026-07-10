@@ -1,0 +1,13 @@
+{
+  " and revoke their API access.": " and revoke their API access.",
+  "Allow creating and managing third-party UI users under your account.": "Allow creating and managing third-party UI users under your account.",
+  "Create a third-party UI user mapped to an API key under your account.": "Create a third-party UI user mapped to an API key under your account.",
+  "Create a third-party user to issue dedicated API access for your external UI.": "Create a third-party user to issue dedicated API access for your external UI.",
+  "Enable third-party users for your organization and configure self-registration.": "Enable third-party users for your organization and configure self-registration.",
+  "Failed to disable third-party user": "Failed to disable third-party user",
+  "Failed to load third-party users": "Failed to load third-party users",
+  "Failed to load usage": "Failed to load usage",
+  "Set to 0 to share your account wallet without a per-user cap.": "Set to 0 to share your account wallet without a per-user cap.",
+  "Third-party UI can register via /api/newuser/register with an invite code.": "Third-party UI can register via /api/newuser/register with an invite code.",
+  "Update third-party user settings and quota limits.": "Update third-party user settings and quota limits."
+}

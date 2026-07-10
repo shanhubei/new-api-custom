@@ -132,6 +132,15 @@ func InitEnv() {
 	SearchRateLimitNum = GetEnvOrDefault("SEARCH_RATE_LIMIT", 10)
 	SearchRateLimitDuration = int64(GetEnvOrDefault("SEARCH_RATE_LIMIT_DURATION", 60))
 	initConstantEnv()
+	initNewuserEnv()
+}
+
+func initNewuserEnv() {
+	NewuserEnabled = GetEnvOrDefaultBool("NEWUSER_ENABLED", false)
+	NewuserDefaultOwnerId = GetEnvOrDefault("NEWUSER_DEFAULT_OWNER_ID", 0)
+	NewuserJWTSecret = GetEnvOrDefaultString("NEWUSER_JWT_SECRET", "")
+	NewuserJWTExpireHours = GetEnvOrDefault("NEWUSER_JWT_EXPIRE_HOURS", 168)
+	NewuserOrgSelfRegisterEnabled = GetEnvOrDefaultBool("NEWUSER_ORG_SELF_REGISTER_ENABLED", false)
 }
 
 func initConstantEnv() {
