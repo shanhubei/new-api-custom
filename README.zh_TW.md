@@ -2,9 +2,9 @@
 
 ![new-api](/web/default/public/logo.png)
 
-# New API
+# New API Custom
 
-🍥 **新一代大模型網關與AI資產管理系統**
+🍥 **新一代大模型網關與AI資產管理系統（定制二開版）**
 
 <p align="center">
   繁體中文 |

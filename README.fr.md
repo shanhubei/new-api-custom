@@ -2,9 +2,9 @@
 
 ![new-api](/web/default/public/logo.png)
 
-# New API
+# New API Custom
 
-🍥 **Passerelle de modèles étendus de nouvelle génération et système de gestion d'actifs d'IA**
+🍥 **Passerelle LLM de nouvelle génération et système de gestion d'actifs d'IA (fork personnalisé)**
 
 <p align="center">
   <a href="./README.zh_CN.md">简体中文</a> |

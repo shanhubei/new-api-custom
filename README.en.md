@@ -2,9 +2,9 @@
 
 ![new-api](/web/default/public/logo.png)
 
-# New API
+# New API Custom
 
-🍥 **Next-Generation Large Model Gateway and AI Asset Management System**
+🍥 **Next-Generation Large Model Gateway and AI Asset Management System (Custom Fork)**
 
 <p align="center">
   <a href="./README.md">中文</a> | 

@@ -2,9 +2,9 @@
 
 ![new-api](/web/default/public/logo.png)
 
-# New API
+# New API Custom
 
-🍥 **次世代大規模モデルゲートウェイとAI資産管理システム**
+🍥 **次世代大規模モデルゲートウェイとAI資産管理システム（カスタム二次開発版）**
 
 <p align="center">
   <a href="./README.zh_CN.md">简体中文</a> |
