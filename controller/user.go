@@ -97,11 +97,73 @@ func Login(c *gin.Context) {
 	setupLogin(&user, c)
 }
 
+func LoginSms(c *gin.Context) {
+	if !common.SmsLoginEnabled {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "sms login is not enabled",
+		})
+		return
+	}
+	var req struct {
+		Phone            string `json:"phone"`
+		VerificationCode string `json:"verification_code"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	phone, err := common.NormalizePhone(req.Phone)
+	if err != nil || req.VerificationCode == "" {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	fail := func() {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "phone or verification code error",
+		})
+	}
+	if !common.VerifyCodeWithKey(phone, req.VerificationCode, common.SmsLoginPurpose) {
+		fail()
+		return
+	}
+	user, err := model.GetUniqueUserByPhone(phone)
+	if err != nil || user.Status != common.UserStatusEnabled {
+		fail()
+		return
+	}
+
+	if model.IsTwoFAEnabled(user.Id) {
+		session := sessions.Default(c)
+		session.Set("pending_username", user.Username)
+		session.Set("pending_user_id", user.Id)
+		err := session.Save()
+		if err != nil {
+			common.ApiErrorI18n(c, i18n.MsgUserSessionSaveFailed)
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": i18n.T(c, i18n.MsgUserRequire2FA),
+			"success": true,
+			"data": map[string]interface{}{
+				"require_2fa": true,
+			},
+		})
+		return
+	}
+
+	setupLogin(user, c)
+}
+
 // loginMethodFromContext 根据请求路径推导登录方式，用于登录审计日志。
 func loginMethodFromContext(c *gin.Context) string {
 	switch c.FullPath() {
 	case "/api/user/login":
 		return "password"
+	case "/api/user/login/sms":
+		return "sms"
 	case "/api/user/login/2fa":
 		return "2fa"
 	case "/api/user/passkey/login/finish":
@@ -159,6 +221,8 @@ func setupLogin(user *model.User, c *gin.Context) {
 			"role":         user.Role,
 			"status":       user.Status,
 			"group":        user.Group,
+			"email":        user.Email,
+			"phone":        user.Phone,
 		},
 	})
 }
@@ -205,8 +269,16 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
-	if common.EmailVerificationEnabled {
-		if user.Email == "" || user.VerificationCode == "" {
+	contactMode, err := decideRegisterContact(common.EmailVerificationEnabled, common.SmsVerificationEnabled, user.Email, user.Phone)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
+		return
+	}
+
+	var normalizedPhone string
+	switch contactMode {
+	case registerContactEmail:
+		if user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
 			return
 		}
@@ -222,9 +294,28 @@ func Register(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgDatabaseError)
 			return
 		}
+	case registerContactPhone:
+		normalizedPhone, err = common.NormalizePhone(user.Phone)
+		if err != nil || user.VerificationCode == "" {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		if !common.VerifyCodeWithKey(normalizedPhone, user.VerificationCode, common.SmsRegisterPurpose) {
+			common.ApiErrorI18n(c, i18n.MsgUserVerificationCodeError)
+			return
+		}
+		if err := model.EnsurePhoneAvailable(normalizedPhone, 0); err != nil {
+			if errors.Is(err, model.ErrPhoneAlreadyTaken) {
+				common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
+				return
+			}
+			common.ApiErrorI18n(c, i18n.MsgDatabaseError)
+			return
+		}
 	}
+
 	emailForExistCheck := ""
-	if common.EmailVerificationEnabled {
+	if contactMode == registerContactEmail {
 		emailForExistCheck = user.Email
 	}
 	exist, err := model.CheckUserExistOrDeleted(user.Username, emailForExistCheck)
@@ -232,6 +323,9 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgDatabaseError)
 		common.SysLog(fmt.Sprintf("CheckUserExistOrDeleted error: %v", err))
 		return
+	}
+	if !exist && contactMode == registerContactPhone && model.IsPhoneAlreadyTaken(normalizedPhone) {
+		exist = true
 	}
 	if exist {
 		common.ApiErrorI18n(c, i18n.MsgUserExists)
@@ -246,12 +340,19 @@ func Register(c *gin.Context) {
 		InviterId:   inviterId,
 		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
 	}
-	if common.EmailVerificationEnabled {
+	if contactMode == registerContactEmail {
 		cleanUser.Email = user.Email
+	}
+	if contactMode == registerContactPhone {
+		cleanUser.Phone = normalizedPhone
 	}
 	if err := cleanUser.Insert(inviterId); err != nil {
 		if errors.Is(err, model.ErrEmailAlreadyTaken) {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
+			return
+		}
+		if errors.Is(err, model.ErrPhoneAlreadyTaken) {
+			common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
 			return
 		}
 		common.ApiError(c, err)
@@ -486,6 +587,7 @@ func GetSelf(c *gin.Context) {
 		"role":              user.Role,
 		"status":            user.Status,
 		"email":             user.Email,
+		"phone":             user.Phone,
 		"github_id":         user.GitHubId,
 		"discord_id":        user.DiscordId,
 		"oidc_id":           user.OidcId,
