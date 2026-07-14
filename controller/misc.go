@@ -300,6 +300,63 @@ func SendEmailVerification(c *gin.Context) {
 	return
 }
 
+func SendSmsVerification(c *gin.Context) {
+	if !common.SmsVerificationEnabled {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	phone, err := common.NormalizePhone(c.Query("phone"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if model.IsPhoneAlreadyTaken(phone) {
+		common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
+		return
+	}
+	if !common.AliyunSmsConfigured() {
+		common.ApiErrorMsg(c, "sms service not configured")
+		return
+	}
+	code := common.GenerateVerificationCode(6)
+	common.RegisterVerificationCodeWithKey(phone, code, common.SmsRegisterPurpose)
+	if err := common.SendAliyunSms(phone, code); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
+func SendSmsLoginVerification(c *gin.Context) {
+	if !common.SmsLoginEnabled {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	phone, err := common.NormalizePhone(c.Query("phone"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
+		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
+			code := common.GenerateVerificationCode(6)
+			common.RegisterVerificationCodeWithKey(phone, code, common.SmsLoginPurpose)
+			if err := common.SendAliyunSms(phone, code); err != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms login verification to %s: %s", phone, err.Error()))
+			}
+		}
+	} else if err != nil && !errors.Is(err, model.ErrPhoneNotFound) {
+		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms login verification for %s: %s", phone, err.Error()))
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
 func SendPasswordResetEmail(c *gin.Context) {
 	email := model.NormalizeEmail(c.Query("email"))
 	if err := common.Validate.Var(email, "required,email"); err != nil {

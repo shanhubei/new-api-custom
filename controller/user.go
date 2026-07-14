@@ -1207,6 +1207,42 @@ type emailBindRequest struct {
 	Code  string `json:"code"`
 }
 
+type phoneBindRequest struct {
+	Phone string `json:"phone"`
+	Code  string `json:"code"`
+}
+
+func SendSmsBindVerification(c *gin.Context) {
+	userId := c.GetInt("id")
+	phone, err := common.NormalizePhone(c.Query("phone"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if err := model.EnsurePhoneAvailable(phone, userId); err != nil {
+		if errors.Is(err, model.ErrPhoneAlreadyTaken) {
+			common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	if !common.AliyunSmsConfigured() {
+		common.ApiErrorMsg(c, "sms service not configured")
+		return
+	}
+	code := common.GenerateVerificationCode(6)
+	common.RegisterVerificationCodeWithKey(phone, code, common.SmsBindPurpose)
+	if err := common.SendAliyunSms(phone, code); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
 func EmailBind(c *gin.Context) {
 	var req emailBindRequest
 	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
@@ -1243,6 +1279,43 @@ func EmailBind(c *gin.Context) {
 		"message": "",
 	})
 	return
+}
+
+func PhoneBind(c *gin.Context) {
+	var req phoneBindRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiError(c, errors.New("invalid request body"))
+		return
+	}
+	phone, err := common.NormalizePhone(req.Phone)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	code := req.Code
+	if !common.VerifyCodeWithKey(phone, code, common.SmsBindPurpose) {
+		common.ApiErrorI18n(c, i18n.MsgUserVerificationCodeError)
+		return
+	}
+	user := model.User{
+		Id: c.GetInt("id"),
+	}
+	if err := user.FillUserById(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.BindPhoneToUser(&user, phone); err != nil {
+		if errors.Is(err, model.ErrPhoneAlreadyTaken) {
+			common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
 }
 
 type topUpRequest struct {

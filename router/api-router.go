@@ -41,6 +41,8 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		apiRouter.GET("/rankings", middleware.HeaderNavModuleAuth("rankings"), controller.GetRankings)
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)
+		apiRouter.GET("/verification/sms", middleware.SmsVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendSmsVerification)
+		apiRouter.GET("/verification/sms_login", middleware.SmsVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendSmsLoginVerification)
 		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
 		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.ResetPassword)
 		// OAuth routes - specific routes must come before :provider wildcard
@@ -123,6 +125,9 @@ func SetApiRouter(router *gin.Engine) {
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
+
+				selfRoute.GET("/sms_bind", middleware.SmsVerificationRateLimit(), controller.SendSmsBindVerification)
+				selfRoute.POST("/phone/bind", middleware.CriticalRateLimit(), controller.PhoneBind)
 			}
 
 			adminRoute := userRoute.Group("/")
