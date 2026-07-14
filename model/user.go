@@ -29,6 +29,7 @@ type User struct {
 	Role             int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
 	Status           int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
 	Email            string                     `json:"email" gorm:"index" validate:"max=50"`
+	Phone            string                     `json:"phone" gorm:"index" validate:"max=20"`
 	GitHubId         string                     `json:"github_id" gorm:"column:github_id;index"`
 	DiscordId        string                     `json:"discord_id" gorm:"column:discord_id;index"`
 	OidcId           string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
@@ -247,6 +248,70 @@ func EnsureEmailAvailable(email string, excludeUserID int) error {
 		return ErrEmailAlreadyTaken
 	}
 	return nil
+}
+
+func CountUsersByPhone(phone string) (int64, error) {
+	phone, err := common.NormalizePhone(phone)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	err = DB.Model(&User{}).Where("phone = ?", phone).Count(&count).Error
+	return count, err
+}
+
+func IsPhoneAlreadyTaken(phone string) bool {
+	count, err := CountUsersByPhone(phone)
+	return err == nil && count > 0
+}
+
+func EnsurePhoneAvailable(phone string, excludeUserID int) error {
+	phone, err := common.NormalizePhone(phone)
+	if err != nil {
+		return err
+	}
+	q := DB.Model(&User{}).Where("phone = ?", phone)
+	if excludeUserID > 0 {
+		q = q.Where("id <> ?", excludeUserID)
+	}
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrPhoneAlreadyTaken
+	}
+	return nil
+}
+
+func GetUniqueUserByPhone(phone string) (*User, error) {
+	phone, err := common.NormalizePhone(phone)
+	if err != nil {
+		return nil, ErrPhoneNotFound
+	}
+	var users []User
+	if err := DB.Where("phone = ?", phone).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, ErrPhoneNotFound
+	}
+	if len(users) > 1 {
+		return nil, ErrPhoneAmbiguous
+	}
+	return &users[0], nil
+}
+
+func BindPhoneToUser(user *User, phone string) error {
+	phone, err := common.NormalizePhone(phone)
+	if err != nil {
+		return err
+	}
+	if err := EnsurePhoneAvailable(phone, user.Id); err != nil {
+		return err
+	}
+	user.Phone = phone
+	return DB.Model(user).Update("phone", phone).Error
 }
 
 // withNormalizedEmailLock serializes concurrent writers that target the same
