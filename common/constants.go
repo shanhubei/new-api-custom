@@ -86,6 +86,15 @@ var MaxRecentItems = 1000
 var PasswordLoginEnabled = true
 var PasswordRegisterEnabled = true
 var EmailVerificationEnabled = false
+var SmsVerificationEnabled = false
+var SmsLoginEnabled = false
+
+var AliyunSmsAccessKeyId = ""
+var AliyunSmsAccessKeySecret = ""
+var AliyunSmsSignName = ""
+var AliyunSmsTemplateCode = ""
+var AliyunSmsTemplateParamCodeKey = "code"
+var AliyunSmsEndpoint = ""
 var GitHubOAuthEnabled = false
 var LinuxDOOAuthEnabled = false
 var WeChatAuthEnabled = false
