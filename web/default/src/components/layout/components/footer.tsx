@@ -129,6 +129,15 @@ function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
     <span className='text-muted-foreground/45'>
       &copy; {props.currentYear}{' '}
       <a
+        href='https://github.com/shanhubei/new-api-custom'
+        target='_blank'
+        rel='noopener noreferrer'
+        className='text-foreground/70 hover:text-foreground font-medium transition-colors'
+      >
+        {t('new-api-custom')}
+      </a>
+      {' · '}
+      <a
         href='https://github.com/QuantumNous/new-api'
         target='_blank'
         rel='noopener noreferrer'
@@ -168,6 +177,14 @@ export function Footer(props: FooterProps) {
       {
         title: t('footer.columns.about.title'),
         links: [
+          {
+            text: t('Custom Fork'),
+            href: 'https://github.com/shanhubei/new-api-custom',
+          },
+          {
+            text: t('Upstream New API'),
+            href: 'https://github.com/QuantumNous/new-api',
+          },
           {
             text: t('footer.columns.about.links.aboutProject'),
             href: 'https://docs.newapi.pro/wiki/project-introduction/',

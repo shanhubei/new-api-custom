@@ -1,5 +1,9 @@
 # 第三方 UI 增量用户模块（newuser）
 
+> **仓库说明**  
+> 本文档属于二次开发仓库 [shanhubei/new-api-custom](https://github.com/shanhubei/new-api-custom)。  
+> 基于上游 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)（AGPL-3.0）增量扩展。
+
 本文档说明 **newuser** 模块的设计、部署与 API 用法，并包含 **组织主账号**（原有 new-api 用户）的注册与登录说明。
 
 该模块为**增量扩展**：不修改原有 `/api/user/login`、relay 计费与 Token 鉴权逻辑，便于后续合并上游 new-api 升级。

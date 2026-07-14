@@ -63,6 +63,22 @@ const FooterBar = () => {
                 </p>
                 <div className='flex flex-col gap-4'>
                   <a
+                    href='https://github.com/shanhubei/new-api-custom'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='!text-semi-color-text-1'
+                  >
+                    {t('本仓库')}
+                  </a>
+                  <a
+                    href='https://github.com/QuantumNous/new-api'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='!text-semi-color-text-1'
+                  >
+                    {t('上游 New API')}
+                  </a>
+                  <a
                     href='https://docs.newapi.pro/wiki/project-introduction/'
                     target='_blank'
                     rel='noopener noreferrer'
@@ -196,8 +212,17 @@ const FooterBar = () => {
           </div>
 
           <div className='text-sm'>
+            <a
+              href='https://github.com/shanhubei/new-api-custom'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='!text-semi-color-primary font-medium'
+            >
+              new-api-custom
+            </a>
             <span className='!text-semi-color-text-1'>
-              {t('设计与开发由')}{' '}
+              {' '}
+              · {t('设计与开发由')}{' '}
             </span>
             <a
               href='https://github.com/QuantumNous/new-api'
@@ -228,8 +253,17 @@ const FooterBar = () => {
               dangerouslySetInnerHTML={{ __html: footer }}
             ></div>
             <div className='text-sm flex-shrink-0'>
+              <a
+                href='https://github.com/shanhubei/new-api-custom'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='!text-semi-color-primary font-medium'
+              >
+                new-api-custom
+              </a>
               <span className='!text-semi-color-text-1'>
-                {t('设计与开发由')}{' '}
+                {' '}
+                · {t('设计与开发由')}{' '}
               </span>
               <a
                 href='https://github.com/QuantumNous/new-api'

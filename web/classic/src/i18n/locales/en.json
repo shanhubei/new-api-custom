@@ -3830,6 +3830,10 @@
     "默认折叠侧边栏": "Default collapse sidebar",
     "默认测试模型": "Default Test Model",
     "默认用户消息": "Default User Message",
-    "默认补全倍率": "Default completion ratio"
+    "默认补全倍率": "Default completion ratio",
+    "本仓库地址：": "This repository: ",
+    "上游 New API 项目仓库地址：": "Upstream New API project repository: ",
+    "本仓库": "This repository",
+    "上游 New API": "Upstream New API"
   }
 }

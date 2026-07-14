@@ -14,6 +14,11 @@
   <a href="./README.ja.md">日本語</a>
 </p>
 
+> **Avis de fork personnalisé**  
+> Ce dépôt ([shanhubei/new-api-custom](https://github.com/shanhubei/new-api-custom)) est une version dérivée personnalisée de **[New API](https://github.com/QuantumNous/new-api)** par [QuantumNous](https://github.com/QuantumNous), sous licence **AGPL-3.0**.  
+> Projet amont (original) : <https://github.com/QuantumNous/new-api>  
+> Documentation des modules personnalisés : [NEWUSER.md](./NEWUSER.md)
+
 <p align="center">
   <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
     <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="licence">
@@ -111,8 +116,8 @@
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/shanhubei/new-api-custom.git
+cd new-api-custom
 
 # Modifier la configuration docker-compose.yml
 nano docker-compose.yml
@@ -341,8 +346,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/shanhubei/new-api-custom.git
+cd new-api-custom
 
 # Modifier la configuration
 nano docker-compose.yml
@@ -452,9 +457,16 @@ Bienvenue à toutes les formes de contribution!
 
 Ce projet est sous licence [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE).
 
-Il s'agit d'un projet open-source développé sur la base de [One API](https://github.com/songquanpeng/one-api) (licence MIT).
+Ce dépôt est un fork personnalisé publié sur
+<https://github.com/shanhubei/new-api-custom>, basé sur
+[QuantumNous/new-api](https://github.com/QuantumNous/new-api).
+Conformément à l'AGPLv3, les versions modifiées doivent conserver un lien visible vers le projet original :
+<https://github.com/QuantumNous/new-api>.
 
-Si les politiques de votre organisation ne permettent pas l'utilisation de logiciels sous licence AGPLv3, ou si vous souhaitez éviter les obligations open-source de l'AGPLv3, veuillez nous contacter à : [support@quantumnous.com](mailto:support@quantumnous.com)
+Le New API amont est développé sur la base de [One API](https://github.com/songquanpeng/one-api) (licence MIT).
+
+Pour les questions de licence commerciale concernant le projet amont, contactez :
+[support@quantumnous.com](mailto:support@quantumnous.com)
 
 ---
 
@@ -462,7 +474,7 @@ Si les politiques de votre organisation ne permettent pas l'utilisation de logic
 
 <div align="center">
 
-[![Graphique de l'historique des étoiles](https://api.star-history.com/svg?repos=Calcium-Ion/new-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
+[![Graphique de l'historique des étoiles](https://api.star-history.com/svg?repos=shanhubei/new-api-custom&type=Date)](https://star-history.com/#shanhubei/new-api-custom&Date)
 
 </div>
 
@@ -474,8 +486,8 @@ Si les politiques de votre organisation ne permettent pas l'utilisation de logic
 
 Si ce projet vous est utile, bienvenue à nous donner une ⭐️ Étoile！
 
-**[Documentation officielle](https://docs.newapi.pro/en/docs)** • **[Commentaires sur les problèmes](https://github.com/Calcium-Ion/new-api/issues)** • **[Dernière version](https://github.com/Calcium-Ion/new-api/releases)**
+**[Documentation officielle](https://docs.newapi.pro/en/docs)** • **[Issues de ce fork](https://github.com/shanhubei/new-api-custom/issues)** • **[New API amont](https://github.com/QuantumNous/new-api)** • **[Versions amont](https://github.com/QuantumNous/new-api/releases)**
 
-<sub>Construit avec ❤️ par QuantumNous</sub>
+<sub>Basé sur New API · Construit avec ❤️ par QuantumNous · Fork : [shanhubei/new-api-custom](https://github.com/shanhubei/new-api-custom)</sub>
 
 </div>

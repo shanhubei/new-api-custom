@@ -14,6 +14,11 @@
   <a href="./README.ja.md">日本語</a>
 </p>
 
+> **二次开发说明**  
+> 本仓库（[shanhubei/new-api-custom](https://github.com/shanhubei/new-api-custom)）基于 **[New API](https://github.com/QuantumNous/new-api)**（[QuantumNous](https://github.com/QuantumNous)）二次开发，遵循 **AGPL-3.0** 协议。  
+> 上游原项目：<https://github.com/QuantumNous/new-api>  
+> 本仓库新增能力说明见：[NEWUSER.md](./NEWUSER.md)（组织 / 第三方 UI 用户模块）
+
 <p align="center">
   <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
     <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
@@ -111,8 +116,8 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/shanhubei/new-api-custom.git
+cd new-api-custom
 
 # 编辑 docker-compose.yml 配置
 nano docker-compose.yml
@@ -341,8 +346,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/shanhubei/new-api-custom.git
+cd new-api-custom
 
 # 编辑配置
 nano docker-compose.yml
@@ -452,9 +457,16 @@ docker run --name new-api -d --restart always \
 
 本项目采用 [GNU Affero 通用公共许可证 v3.0 (AGPLv3)](./LICENSE) 授权。
 
-本项目为开源项目，在 [One API](https://github.com/songquanpeng/one-api)（MIT 许可证）的基础上进行二次开发。
+本仓库为二次开发版本，发布于
+<https://github.com/shanhubei/new-api-custom>，基于上游
+[QuantumNous/new-api](https://github.com/QuantumNous/new-api)。
+按 AGPLv3 要求，修改版本须保留原项目可见链接：
+<https://github.com/QuantumNous/new-api>。
 
-如果您所在的组织政策不允许使用 AGPLv3 许可的软件，或您希望规避 AGPLv3 的开源义务，请发送邮件至：[support@quantumnous.com](mailto:support@quantumnous.com)
+上游 New API 在 [One API](https://github.com/songquanpeng/one-api)（MIT 许可证）基础上开发。
+
+如需了解上游项目的商业授权事宜，请联系：
+[support@quantumnous.com](mailto:support@quantumnous.com)
 
 ---
 
@@ -462,7 +474,7 @@ docker run --name new-api -d --restart always \
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Calcium-Ion/new-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=shanhubei/new-api-custom&type=Date)](https://star-history.com/#shanhubei/new-api-custom&Date)
 
 </div>
 
@@ -474,8 +486,8 @@ docker run --name new-api -d --restart always \
 
 如果这个项目对你有帮助，欢迎给我们一个 ⭐️ Star！
 
-**[官方文档](https://docs.newapi.pro/zh/docs)** • **[问题反馈](https://github.com/Calcium-Ion/new-api/issues)** • **[最新发布](https://github.com/Calcium-Ion/new-api/releases)**
+**[官方文档](https://docs.newapi.pro/zh/docs)** • **[本仓库 Issues](https://github.com/shanhubei/new-api-custom/issues)** • **[上游 New API](https://github.com/QuantumNous/new-api)** • **[上游发布](https://github.com/QuantumNous/new-api/releases)**
 
-<sub>Built with ❤️ by QuantumNous</sub>
+<sub>基于 New API · Built with ❤️ by QuantumNous · 本仓库：[shanhubei/new-api-custom](https://github.com/shanhubei/new-api-custom)</sub>
 
 </div>

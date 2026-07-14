@@ -3684,6 +3684,10 @@
     "默认折叠侧边栏": "Réduire la barre latérale par défaut",
     "默认测试模型": "Modèle de test par défaut",
     "默认用户消息": "Bonjour",
-    "默认补全倍率": "Taux de complétion par défaut"
+    "默认补全倍率": "Taux de complétion par défaut",
+    "本仓库地址：": "Ce dépôt : ",
+    "上游 New API 项目仓库地址：": "Dépôt New API amont : ",
+    "本仓库": "Ce dépôt",
+    "上游 New API": "New API amont"
   }
 }

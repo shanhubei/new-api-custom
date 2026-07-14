@@ -47,7 +47,18 @@ function EmptyAboutState() {
         </div>
         <div className='space-y-4 text-sm'>
           <p>
-            {t('New API Project Repository:')}{' '}
+            {t('Custom Fork Repository:')}{' '}
+            <a
+              href='https://github.com/shanhubei/new-api-custom'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary hover:underline'
+            >
+              {t('https://github.com/shanhubei/new-api-custom')}
+            </a>
+          </p>
+          <p>
+            {t('Upstream New API Project Repository:')}{' '}
             <a
               href='https://github.com/QuantumNous/new-api'
               target='_blank'
