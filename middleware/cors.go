@@ -8,10 +8,14 @@ import (
 
 func CORS() gin.HandlerFunc {
 	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
+	// Reflect request Origin so cross-origin clients (Electron dev, Vite) work with credentials.
+	config.AllowOriginFunc = func(string) bool {
+		return true
+	}
 	config.AllowCredentials = true
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}
 	config.AllowHeaders = []string{"*"}
+	config.ExposeHeaders = []string{"X-New-Api-Version"}
 	return cors.New(config)
 }
 

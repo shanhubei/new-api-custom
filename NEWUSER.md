@@ -793,6 +793,9 @@ A：用 `api_key`（sk-）调 `/v1/*`，不是 JWT。
 **Q：主账号和第三方有什么区别？**  
 A：主账号管后台和钱包；第三方是给外部 UI 用的子账号，共用主账号钱包。
 
+**Q：Electron / Vite 开发时 CORS 报错？**  
+A：`localhost:5173` 访问 `127.0.0.1:3000` 属于跨域。后端 `/api/*` 已启用 CORS；改代码后需 `docker compose build && docker compose up -d`。开发时也可在 Vite 配置 `server.proxy` 把 `/api` 代理到后端，避免浏览器跨域。
+
 **Q：JWT / Cookie 重启失效？**  
 A：固定 `SESSION_SECRET`（或 `NEWUSER_JWT_SECRET`）。
 
