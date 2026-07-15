@@ -41,6 +41,7 @@ import {
   Form,
   Icon,
   Modal,
+  Radio,
 } from '@douyinfe/semi-ui';
 import Title from '@douyinfe/semi-ui/lib/es/typography/title';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
@@ -50,6 +51,7 @@ import {
   IconUser,
   IconLock,
   IconKey,
+  IconPhone,
 } from '@douyinfe/semi-icons';
 import {
   onGitHubOAuthClicked,
@@ -78,6 +80,7 @@ const RegisterForm = () => {
     password: '',
     password2: '',
     email: '',
+    phone: '',
     verification_code: '',
     wechat_verification_code: '',
   });
@@ -142,9 +145,26 @@ const RegisterForm = () => {
   );
 
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [showSmsVerification, setShowSmsVerification] = useState(false);
+  const [verificationMethod, setVerificationMethod] = useState('email');
+  const showVerificationChoice =
+    showEmailVerification && showSmsVerification;
+  const usingPhoneVerification =
+    showSmsVerification &&
+    (!showEmailVerification || verificationMethod === 'phone');
+  const usingEmailVerification =
+    showEmailVerification &&
+    (!showSmsVerification || verificationMethod === 'email');
+  const verificationRequired = showEmailVerification || showSmsVerification;
 
   useEffect(() => {
     setShowEmailVerification(!!status?.email_verification);
+    setShowSmsVerification(!!status?.sms_verification);
+    if (status?.sms_verification && !status?.email_verification) {
+      setVerificationMethod('phone');
+    } else if (status?.email_verification && !status?.sms_verification) {
+      setVerificationMethod('email');
+    }
     if (status?.turnstile_check) {
       setTurnstileEnabled(true);
       setTurnstileSiteKey(status.turnstile_site_key);
@@ -225,6 +245,27 @@ const RegisterForm = () => {
       return;
     }
     if (username && password) {
+      if (verificationRequired) {
+        if (usingPhoneVerification) {
+          if (!inputs.phone?.trim()) {
+            showInfo('请输入手机号！');
+            return;
+          }
+          if (!inputs.verification_code) {
+            showInfo('请输入验证码！');
+            return;
+          }
+        } else if (usingEmailVerification) {
+          if (!inputs.email) {
+            showInfo('请输入邮箱！');
+            return;
+          }
+          if (!inputs.verification_code) {
+            showInfo('请输入验证码！');
+            return;
+          }
+        }
+      }
       if (turnstileEnabled && turnstileToken === '') {
         showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
         return;
@@ -234,10 +275,22 @@ const RegisterForm = () => {
         if (!affCode) {
           affCode = localStorage.getItem('aff');
         }
-        inputs.aff_code = affCode;
+        const payload = {
+          username: inputs.username,
+          password: inputs.password,
+          aff_code: affCode,
+          verification_code: inputs.verification_code || undefined,
+        };
+        if (usingPhoneVerification) {
+          payload.phone = inputs.phone.trim();
+          delete payload.email;
+        } else if (usingEmailVerification) {
+          payload.email = inputs.email;
+          delete payload.phone;
+        }
         const res = await API.post(
           `/api/user/register?turnstile=${turnstileToken}`,
-          inputs,
+          payload,
         );
         const { success, message } = res.data;
         if (success) {
@@ -255,6 +308,35 @@ const RegisterForm = () => {
   }
 
   const sendVerificationCode = async () => {
+    if (usingPhoneVerification) {
+      if (!inputs.phone?.trim()) {
+        showInfo('请输入手机号！');
+        return;
+      }
+      if (turnstileEnabled && turnstileToken === '') {
+        showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
+        return;
+      }
+      setVerificationCodeLoading(true);
+      try {
+        const res = await API.get(
+          `/api/verification/sms?phone=${encodeURIComponent(inputs.phone.trim())}&turnstile=${turnstileToken}`,
+        );
+        const { success, message } = res.data;
+        if (success) {
+          showSuccess('验证码发送成功，请查收短信！');
+          setDisableButton(true);
+        } else {
+          showError(message);
+        }
+      } catch (error) {
+        showError('发送验证码失败，请重试');
+      } finally {
+        setVerificationCodeLoading(false);
+      }
+      return;
+    }
+
     if (inputs.email === '') return;
     if (turnstileEnabled && turnstileToken === '') {
       showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
@@ -602,28 +684,76 @@ const RegisterForm = () => {
                   prefix={<IconLock />}
                 />
 
-                {showEmailVerification && (
+                {verificationRequired && (
                   <>
-                    <Form.Input
-                      field='email'
-                      label={t('邮箱')}
-                      placeholder={t('输入邮箱地址')}
-                      name='email'
-                      type='email'
-                      onChange={(value) => handleChange('email', value)}
-                      prefix={<IconMail />}
-                      suffix={
-                        <Button
-                          onClick={sendVerificationCode}
-                          loading={verificationCodeLoading}
-                          disabled={disableButton || verificationCodeLoading}
-                        >
-                          {disableButton
-                            ? `${t('重新发送')} (${countdown})`
-                            : t('获取验证码')}
-                        </Button>
-                      }
-                    />
+                    {showVerificationChoice && (
+                      <Radio.Group
+                        type='button'
+                        value={verificationMethod}
+                        onChange={(e) => {
+                          const value =
+                            e && e.target ? e.target.value : e;
+                          setVerificationMethod(value);
+                          handleChange('verification_code', '');
+                        }}
+                        style={{ marginBottom: 12, width: '100%' }}
+                      >
+                        <Radio value='email' style={{ flex: 1 }}>
+                          {t('邮箱')}
+                        </Radio>
+                        <Radio value='phone' style={{ flex: 1 }}>
+                          {t('手机')}
+                        </Radio>
+                      </Radio.Group>
+                    )}
+
+                    {usingEmailVerification && (
+                      <Form.Input
+                        field='email'
+                        label={t('邮箱')}
+                        placeholder={t('输入邮箱地址')}
+                        name='email'
+                        type='email'
+                        onChange={(value) => handleChange('email', value)}
+                        prefix={<IconMail />}
+                        suffix={
+                          <Button
+                            onClick={sendVerificationCode}
+                            loading={verificationCodeLoading}
+                            disabled={disableButton || verificationCodeLoading}
+                          >
+                            {disableButton
+                              ? `${t('重新发送')} (${countdown})`
+                              : t('获取验证码')}
+                          </Button>
+                        }
+                      />
+                    )}
+
+                    {usingPhoneVerification && (
+                      <Form.Input
+                        field='phone'
+                        label={t('手机号')}
+                        placeholder={t('输入手机号')}
+                        name='phone'
+                        type='tel'
+                        onChange={(value) => handleChange('phone', value)}
+                        prefix={<IconPhone />}
+                        maxLength={11}
+                        suffix={
+                          <Button
+                            onClick={sendVerificationCode}
+                            loading={verificationCodeLoading}
+                            disabled={disableButton || verificationCodeLoading}
+                          >
+                            {disableButton
+                              ? `${t('重新发送')} (${countdown})`
+                              : t('获取验证码')}
+                          </Button>
+                        }
+                      />
+                    )}
+
                     <Form.Input
                       field='verification_code'
                       label={t('验证码')}

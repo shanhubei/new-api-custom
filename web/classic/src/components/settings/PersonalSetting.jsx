@@ -42,6 +42,7 @@ import NotificationSettings from './personal/cards/NotificationSettings';
 import PreferencesSettings from './personal/cards/PreferencesSettings';
 import CheckinCalendar from './personal/cards/CheckinCalendar';
 import EmailBindModal from './personal/modals/EmailBindModal';
+import PhoneBindModal from './personal/modals/PhoneBindModal';
 import WeChatBindModal from './personal/modals/WeChatBindModal';
 import AccountDeleteModal from './personal/modals/AccountDeleteModal';
 import ChangePasswordModal from './personal/modals/ChangePasswordModal';
@@ -56,6 +57,8 @@ const PersonalSetting = () => {
   const [inputs, setInputs] = useState({
     wechat_verification_code: '',
     email_verification_code: '',
+    phone: '',
+    phone_verification_code: '',
     email: '',
     self_account_deletion_confirmation: '',
     original_password: '',
@@ -66,6 +69,7 @@ const PersonalSetting = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showWeChatBindModal, setShowWeChatBindModal] = useState(false);
   const [showEmailBindModal, setShowEmailBindModal] = useState(false);
+  const [showPhoneBindModal, setShowPhoneBindModal] = useState(false);
   const [showAccountDeleteModal, setShowAccountDeleteModal] = useState(false);
   const [turnstileEnabled, setTurnstileEnabled] = useState(false);
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
@@ -486,6 +490,62 @@ const PersonalSetting = () => {
     setLoading(false);
   };
 
+  const sendSmsBindCode = async () => {
+    if (!inputs.phone?.trim()) {
+      showError(t('请输入手机号！'));
+      return;
+    }
+    setDisableButton(true);
+    setLoading(true);
+    try {
+      const res = await API.get(
+        `/api/user/sms_bind?phone=${encodeURIComponent(inputs.phone.trim())}`,
+      );
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess(t('验证码发送成功，请查收短信！'));
+      } else {
+        showError(message);
+        setDisableButton(false);
+      }
+    } catch (error) {
+      showError(t('发送验证码失败，请重试'));
+      setDisableButton(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const bindPhone = async () => {
+    if (!inputs.phone?.trim()) {
+      showError(t('请输入手机号！'));
+      return;
+    }
+    if (inputs.phone_verification_code === '') {
+      showError(t('请输入验证码！'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await API.post('/api/user/phone/bind', {
+        phone: inputs.phone.trim(),
+        code: inputs.phone_verification_code,
+      });
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess(t('手机号绑定成功！'));
+        setShowPhoneBindModal(false);
+        await getUserData();
+      } else {
+        showError(message);
+      }
+    } catch (error) {
+      showError(t('绑定手机号失败，请重试'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyText = async (text) => {
     if (await copy(text)) {
       showSuccess(t('已复制：') + text);
@@ -570,6 +630,7 @@ const PersonalSetting = () => {
                 status={status}
                 systemToken={systemToken}
                 setShowEmailBindModal={setShowEmailBindModal}
+                setShowPhoneBindModal={setShowPhoneBindModal}
                 setShowWeChatBindModal={setShowWeChatBindModal}
                 generateAccessToken={generateAccessToken}
                 handleSystemTokenClick={handleSystemTokenClick}
@@ -613,6 +674,19 @@ const PersonalSetting = () => {
         turnstileEnabled={turnstileEnabled}
         turnstileSiteKey={turnstileSiteKey}
         setTurnstileToken={setTurnstileToken}
+      />
+
+      <PhoneBindModal
+        t={t}
+        showPhoneBindModal={showPhoneBindModal}
+        setShowPhoneBindModal={setShowPhoneBindModal}
+        inputs={inputs}
+        handleInputChange={handleInputChange}
+        sendSmsBindCode={sendSmsBindCode}
+        bindPhone={bindPhone}
+        disableButton={disableButton}
+        loading={loading}
+        countdown={countdown}
       />
 
       <WeChatBindModal

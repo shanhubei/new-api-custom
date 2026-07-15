@@ -49,6 +49,7 @@ import {
   Form,
   Icon,
   Modal,
+  Radio,
 } from '@douyinfe/semi-ui';
 import Title from '@douyinfe/semi-ui/lib/es/typography/title';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
@@ -59,6 +60,7 @@ import {
   IconMail,
   IconLock,
   IconKey,
+  IconPhone,
 } from '@douyinfe/semi-icons';
 import OIDCIcon from '../common/logo/OIDCIcon';
 import WeChatIcon from '../common/logo/WeChatIcon';
@@ -78,6 +80,8 @@ const LoginForm = () => {
   const [inputs, setInputs] = useState({
     username: '',
     password: '',
+    phone: '',
+    sms_verification_code: '',
     wechat_verification_code: '',
   });
   const { username, password } = inputs;
@@ -112,6 +116,10 @@ const LoginForm = () => {
   const githubTimeoutRef = useRef(null);
   const githubButtonText = t(githubButtonTextKeyByState[githubButtonState]);
   const [customOAuthLoading, setCustomOAuthLoading] = useState({});
+  const [loginMethod, setLoginMethod] = useState('password');
+  const [smsCodeLoading, setSmsCodeLoading] = useState(false);
+  const [disableSmsButton, setDisableSmsButton] = useState(false);
+  const [smsCountdown, setSmsCountdown] = useState(30);
 
   const logo = getLogo();
   const systemName = getSystemName();
@@ -143,16 +151,30 @@ const LoginForm = () => {
       hasCustomOAuthProviders,
   );
 
+  const passwordLoginEnabled = status.password_login_enabled !== false;
+  const smsLoginEnabled = !!status.sms_login;
+  const showLoginTabs = smsLoginEnabled && passwordLoginEnabled;
+  const usingSmsLogin =
+    smsLoginEnabled && (!passwordLoginEnabled || loginMethod === 'sms');
+  const usingPasswordLogin =
+    passwordLoginEnabled && (!smsLoginEnabled || loginMethod === 'password');
+
   useEffect(() => {
     if (status?.turnstile_check) {
       setTurnstileEnabled(true);
       setTurnstileSiteKey(status.turnstile_site_key);
     }
 
+    if (status?.sms_login && !passwordLoginEnabled) {
+      setLoginMethod('sms');
+    } else if (passwordLoginEnabled && !status?.sms_login) {
+      setLoginMethod('password');
+    }
+
     // 从 status 获取用户协议和隐私政策的启用状态
     setHasUserAgreement(status?.user_agreement_enabled || false);
     setHasPrivacyPolicy(status?.privacy_policy_enabled || false);
-  }, [status]);
+  }, [status, passwordLoginEnabled]);
 
   useEffect(() => {
     isPasskeySupported()
@@ -171,6 +193,19 @@ const LoginForm = () => {
       showError(t('未登录或登录已过期，请重新登录'));
     }
   }, []);
+
+  useEffect(() => {
+    let countdownInterval = null;
+    if (disableSmsButton && smsCountdown > 0) {
+      countdownInterval = setInterval(() => {
+        setSmsCountdown(smsCountdown - 1);
+      }, 1000);
+    } else if (smsCountdown === 0) {
+      setDisableSmsButton(false);
+      setSmsCountdown(30);
+    }
+    return () => clearInterval(countdownInterval);
+  }, [disableSmsButton, smsCountdown]);
 
   const onWeChatLoginClicked = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
@@ -214,6 +249,84 @@ const LoginForm = () => {
   function handleChange(name, value) {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
   }
+
+  async function handleSmsSubmit() {
+    if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
+      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      return;
+    }
+    if (!inputs.phone?.trim()) {
+      showError('请输入手机号！');
+      return;
+    }
+    if (!inputs.sms_verification_code?.trim()) {
+      showError('请输入验证码！');
+      return;
+    }
+    if (turnstileEnabled && turnstileToken === '') {
+      showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
+      return;
+    }
+    setSubmitted(true);
+    setLoginLoading(true);
+    try {
+      const res = await API.post(
+        `/api/user/login/sms?turnstile=${turnstileToken}`,
+        {
+          phone: inputs.phone.trim(),
+          verification_code: inputs.sms_verification_code.trim(),
+        },
+      );
+      const { success, message, data } = res.data;
+      if (success) {
+        if (data && data.require_2fa) {
+          setShowTwoFA(true);
+          setLoginLoading(false);
+          return;
+        }
+
+        userDispatch({ type: 'login', payload: data });
+        setUserData(data);
+        updateAPI();
+        showSuccess('登录成功！');
+        navigate('/console');
+      } else {
+        showError(message);
+      }
+    } catch (error) {
+      showError('登录失败，请重试');
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  const sendSmsLoginCode = async () => {
+    if (!inputs.phone?.trim()) {
+      showInfo('请输入手机号！');
+      return;
+    }
+    if (turnstileEnabled && turnstileToken === '') {
+      showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
+      return;
+    }
+    setSmsCodeLoading(true);
+    try {
+      const res = await API.get(
+        `/api/verification/sms_login?phone=${encodeURIComponent(inputs.phone.trim())}&turnstile=${turnstileToken}`,
+      );
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess('验证码发送成功，请查收短信！');
+        setDisableSmsButton(true);
+      } else {
+        showError(message);
+      }
+    } catch (error) {
+      showError('发送验证码失败，请重试');
+    } finally {
+      setSmsCodeLoading(false);
+    }
+  };
 
   async function handleSubmit(e) {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
@@ -497,7 +610,13 @@ const LoginForm = () => {
   // 返回登录页面
   const handleBackToLogin = () => {
     setShowTwoFA(false);
-    setInputs({ username: '', password: '', wechat_verification_code: '' });
+    setInputs({
+      username: '',
+      password: '',
+      phone: '',
+      sms_verification_code: '',
+      wechat_verification_code: '',
+    });
   };
 
   const renderOAuthOptions = () => {
@@ -744,6 +863,28 @@ const LoginForm = () => {
                   <span className='ml-3'>{t('使用 Passkey 登录')}</span>
                 </Button>
               )}
+
+              {showLoginTabs && (
+                <Radio.Group
+                  type='button'
+                  value={loginMethod}
+                  onChange={(e) => {
+                    const value = e && e.target ? e.target.value : e;
+                    setLoginMethod(value);
+                    handleChange('sms_verification_code', '');
+                  }}
+                  style={{ marginBottom: 16, width: '100%' }}
+                >
+                  <Radio value='password' style={{ flex: 1 }}>
+                    {t('密码登录')}
+                  </Radio>
+                  <Radio value='sms' style={{ flex: 1 }}>
+                    {t('短信登录')}
+                  </Radio>
+                </Radio.Group>
+              )}
+
+              {usingPasswordLogin && (
               <Form className='space-y-3'>
                 <Form.Input
                   field='username'
@@ -828,6 +969,97 @@ const LoginForm = () => {
                   </Button>
                 </div>
               </Form>
+              )}
+
+              {usingSmsLogin && (
+                <Form className='space-y-3'>
+                  <Form.Input
+                    field='phone'
+                    label={t('手机号')}
+                    placeholder={t('输入手机号')}
+                    name='phone'
+                    type='tel'
+                    onChange={(value) => handleChange('phone', value)}
+                    prefix={<IconPhone />}
+                    maxLength={11}
+                  />
+
+                  <Form.Input
+                    field='sms_verification_code'
+                    label={t('验证码')}
+                    placeholder={t('输入验证码')}
+                    name='sms_verification_code'
+                    onChange={(value) =>
+                      handleChange('sms_verification_code', value)
+                    }
+                    prefix={<IconKey />}
+                    suffix={
+                      <Button
+                        onClick={sendSmsLoginCode}
+                        loading={smsCodeLoading}
+                        disabled={disableSmsButton || smsCodeLoading}
+                      >
+                        {disableSmsButton
+                          ? `${t('重新发送')} (${smsCountdown})`
+                          : t('获取验证码')}
+                      </Button>
+                    }
+                  />
+
+                  {(hasUserAgreement || hasPrivacyPolicy) && (
+                    <div className='pt-4'>
+                      <Checkbox
+                        checked={agreedToTerms}
+                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      >
+                        <Text size='small' className='text-gray-600'>
+                          {t('我已阅读并同意')}
+                          {hasUserAgreement && (
+                            <>
+                              <a
+                                href='/user-agreement'
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-blue-600 hover:text-blue-800 mx-1'
+                              >
+                                {t('用户协议')}
+                              </a>
+                            </>
+                          )}
+                          {hasUserAgreement && hasPrivacyPolicy && t('和')}
+                          {hasPrivacyPolicy && (
+                            <>
+                              <a
+                                href='/privacy-policy'
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-blue-600 hover:text-blue-800 mx-1'
+                              >
+                                {t('隐私政策')}
+                              </a>
+                            </>
+                          )}
+                        </Text>
+                      </Checkbox>
+                    </div>
+                  )}
+
+                  <div className='space-y-2 pt-2'>
+                    <Button
+                      theme='solid'
+                      className='w-full !rounded-full'
+                      type='primary'
+                      onClick={handleSmsSubmit}
+                      loading={loginLoading}
+                      disabled={
+                        (hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms
+                      }
+                    >
+                      {t('继续')}
+                    </Button>
+                  </div>
+                </Form>
+              )}
 
               {hasOAuthLoginOptions && (
                 <>
