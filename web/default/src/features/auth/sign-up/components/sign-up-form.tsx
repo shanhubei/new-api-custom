@@ -38,12 +38,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { register, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { registerFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
+import { useSmsVerification } from '@/features/auth/hooks/use-sms-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import {
   getAffiliateCode,
@@ -59,6 +61,10 @@ export function SignUpForm({
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [verificationCode, setVerificationCode] = useState('')
+  const [phone, setPhone] = useState('')
+  const [verificationMethod, setVerificationMethod] = useState<'email' | 'phone'>(
+    'email'
+  )
   const [agreedToLegal, setAgreedToLegal] = useState(false)
   const [wechatCode, setWeChatCode] = useState('')
   const [isWeChatDialogOpen, setIsWeChatDialogOpen] = useState(false)
@@ -83,6 +89,15 @@ export function SignUpForm({
     turnstileToken,
     validateTurnstile,
   })
+  const {
+    isSending: isSendingSmsCode,
+    secondsLeft: smsSecondsLeft,
+    isActive: isSmsActive,
+    sendCode: sendSmsCode,
+  } = useSmsVerification({
+    turnstileToken,
+    validateTurnstile,
+  })
 
   const form = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
@@ -96,6 +111,17 @@ export function SignUpForm({
 
   const emailValue = form.watch('email')
   const emailVerificationRequired = !!status?.email_verification
+  const smsVerificationRequired = !!status?.sms_verification
+  const verificationRequired =
+    emailVerificationRequired || smsVerificationRequired
+  const showVerificationChoice =
+    emailVerificationRequired && smsVerificationRequired
+  const usingPhoneVerification =
+    smsVerificationRequired &&
+    (!emailVerificationRequired || verificationMethod === 'phone')
+  const usingEmailVerification =
+    emailVerificationRequired &&
+    (!smsVerificationRequired || verificationMethod === 'email')
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
   const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
@@ -129,6 +155,14 @@ export function SignUpForm({
   }, [requiresLegalConsent])
 
   useEffect(() => {
+    if (smsVerificationRequired && !emailVerificationRequired) {
+      setVerificationMethod('phone')
+    } else if (emailVerificationRequired && !smsVerificationRequired) {
+      setVerificationMethod('email')
+    }
+  }, [emailVerificationRequired, smsVerificationRequired])
+
+  useEffect(() => {
     const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
     if (aff) {
       saveAffiliateCode(aff)
@@ -141,15 +175,26 @@ export function SignUpForm({
       return
     }
 
-    // Validate email verification if required
-    if (emailVerificationRequired) {
-      if (!data.email) {
-        toast.error(t('Please enter your email'))
-        return
-      }
-      if (!verificationCode) {
-        toast.error(t('Please enter the verification code'))
-        return
+    // Validate verification if required
+    if (verificationRequired) {
+      if (usingPhoneVerification) {
+        if (!phone.trim()) {
+          toast.error(t('Please enter your phone'))
+          return
+        }
+        if (!verificationCode) {
+          toast.error(t('Please enter the verification code'))
+          return
+        }
+      } else if (usingEmailVerification) {
+        if (!data.email) {
+          toast.error(t('Please enter your email'))
+          return
+        }
+        if (!verificationCode) {
+          toast.error(t('Please enter the verification code'))
+          return
+        }
       }
     }
 
@@ -160,7 +205,8 @@ export function SignUpForm({
       const res = await register({
         username: data.username,
         password: data.password,
-        email: data.email || undefined,
+        email: usingEmailVerification ? data.email || undefined : undefined,
+        phone: usingPhoneVerification ? phone.trim() : undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
         turnstile: turnstileToken,
@@ -180,8 +226,23 @@ export function SignUpForm({
   }
 
   async function handleSendVerificationCode() {
+    if (usingPhoneVerification) {
+      await sendSmsCode(phone.trim())
+      return
+    }
     await sendCode(emailValue || '')
   }
+
+  const isSendingVerificationCode = usingPhoneVerification
+    ? isSendingSmsCode
+    : isSendingCode
+  const verificationSecondsLeft = usingPhoneVerification
+    ? smsSecondsLeft
+    : secondsLeft
+  const isVerificationActive = usingPhoneVerification ? isSmsActive : isActive
+  const canSendVerificationCode = usingPhoneVerification
+    ? Boolean(phone.trim())
+    : Boolean(emailValue)
 
   const handleOpenWeChatDialog = () => {
     if (requiresLegalConsent && !agreedToLegal) {
@@ -278,37 +339,70 @@ export function SignUpForm({
           )}
         />
 
-        {/* Email Verification Section */}
-        {emailVerificationRequired && (
+        {/* Verification Section */}
+        {verificationRequired && (
           <>
-            {/* Email Field */}
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('Email (required for verification)')}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t('name@example.com')}
-                      type='email'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {showVerificationChoice && (
+              <Tabs
+                value={verificationMethod}
+                onValueChange={(value) => {
+                  setVerificationMethod(value as 'email' | 'phone')
+                  setVerificationCode('')
+                }}
+              >
+                <TabsList className='grid w-full grid-cols-2'>
+                  <TabsTrigger value='email'>{t('Email')}</TabsTrigger>
+                  <TabsTrigger value='phone'>{t('Phone')}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
 
-            {/* Verification Code Field */}
+            {usingEmailVerification && (
+              <FormField
+                control={form.control}
+                name='email'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Email (required for verification)')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('name@example.com')}
+                        type='email'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {usingPhoneVerification && (
+              <div className='grid gap-2'>
+                <Label htmlFor='register-phone'>
+                  {t('Phone (required for verification)')}
+                </Label>
+                <Input
+                  id='register-phone'
+                  placeholder={t('Enter your phone number')}
+                  type='tel'
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete='tel'
+                  maxLength={11}
+                />
+              </div>
+            )}
+
             <div className='flex items-end gap-2'>
               <div className='flex-1'>
                 <Input
                   placeholder={t('Verification code')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
+                  autoComplete='one-time-code'
                 />
               </div>
               <Button
@@ -316,16 +410,18 @@ export function SignUpForm({
                 type='button'
                 disabled={
                   isLoading ||
-                  isSendingCode ||
-                  isActive ||
-                  !emailValue ||
+                  isSendingVerificationCode ||
+                  isVerificationActive ||
+                  !canSendVerificationCode ||
                   !turnstileReady
                 }
                 onClick={handleSendVerificationCode}
               >
-                {isActive ? (
-                  t('Resend ({{seconds}}s)', { seconds: secondsLeft })
-                ) : isSendingCode ? (
+                {isVerificationActive ? (
+                  t('Resend ({{seconds}}s)', {
+                    seconds: verificationSecondsLeft,
+                  })
+                ) : isSendingVerificationCode ? (
                   <Loader2 className='h-4 w-4 animate-spin' />
                 ) : (
                   t('Send code')

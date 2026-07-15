@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Mail, Shield, Send, Link2, Unlink } from 'lucide-react'
+import { Mail, Shield, Send, Link2, Unlink, Phone } from 'lucide-react'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiWechat, SiLinux } from 'react-icons/si'
@@ -44,6 +44,7 @@ import {
 } from '../../api'
 import type { UserProfile, BindingItem } from '../../types'
 import { EmailBindDialog } from '../dialogs/email-bind-dialog'
+import { PhoneBindDialog } from '../dialogs/phone-bind-dialog'
 import { TelegramBindDialog } from '../dialogs/telegram-bind-dialog'
 import { WeChatBindDialog } from '../dialogs/wechat-bind-dialog'
 
@@ -56,7 +57,14 @@ interface AccountBindingsTabProps {
   onUpdate: () => void
 }
 
-type DialogKey = 'email' | 'wechat' | 'telegram'
+type DialogKey = 'email' | 'phone' | 'wechat' | 'telegram'
+
+function maskPhone(phone: string): string {
+  if (phone.length === 11) {
+    return `${phone.slice(0, 3)}****${phone.slice(7)}`
+  }
+  return phone
+}
 
 export function AccountBindingsTab({
   profile,
@@ -161,6 +169,17 @@ export function AccountBindingsTab({
         isBound: Boolean(profile.email),
         isEnabled: true,
         onBind: () => dialogs.open('email'),
+      },
+      {
+        id: 'phone',
+        label: t('Phone'),
+        icon: Phone,
+        value: profile.phone ? maskPhone(profile.phone) : undefined,
+        isBound: Boolean(profile.phone),
+        isEnabled: Boolean(
+          status?.sms_verification || status?.sms_login || profile.phone
+        ),
+        onBind: () => dialogs.open('phone'),
       },
       {
         id: 'wechat',
@@ -296,10 +315,14 @@ export function AccountBindingsTab({
               size='sm'
               className='h-7 shrink-0 px-2.5 text-xs'
               onClick={binding.onBind}
-              disabled={binding.isBound && binding.id !== 'email'}
+              disabled={
+                binding.isBound &&
+                binding.id !== 'email' &&
+                binding.id !== 'phone'
+              }
             >
               {binding.isBound
-                ? binding.id === 'email'
+                ? binding.id === 'email' || binding.id === 'phone'
                   ? t('Change')
                   : t('Bound')
                 : t('Bind')}
@@ -399,6 +422,17 @@ export function AccountBindingsTab({
           open ? dialogs.open('email') : dialogs.close('email')
         }
         currentEmail={profile.email}
+        onSuccess={onUpdate}
+      />
+
+      <PhoneBindDialog
+        open={dialogs.isOpen('phone')}
+        onOpenChange={(open) =>
+          open ? dialogs.open('phone') : dialogs.close('phone')
+        }
+        currentPhone={
+          profile.phone ? maskPhone(profile.phone) : undefined
+        }
         onSuccess={onUpdate}
       />
 

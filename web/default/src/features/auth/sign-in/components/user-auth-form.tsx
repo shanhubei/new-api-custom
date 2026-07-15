@@ -39,11 +39,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, wechatLoginByCode } from '@/features/auth/api'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { login, loginWithSms, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
+import { useSmsLoginVerification } from '@/features/auth/hooks/use-sms-login-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
@@ -68,6 +70,9 @@ export function UserAuthForm({
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false)
   const [isWeChatDialogOpen, setIsWeChatDialogOpen] = useState(false)
   const [isWeChatSubmitting, setIsWeChatSubmitting] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<'password' | 'sms'>('password')
+  const [smsPhone, setSmsPhone] = useState('')
+  const [smsCode, setSmsCode] = useState('')
   const legalConsentErrorMessage = t('Please agree to the legal terms first')
   const loginFailedMessage = t('Login failed')
 
@@ -79,6 +84,13 @@ export function UserAuthForm({
     (status?.password_login_enabled ??
       status?.data?.password_login_enabled ??
       true) !== false
+  const smsLoginEnabled = Boolean(
+    status?.sms_login ?? status?.data?.sms_login
+  )
+  const showLoginTabs = smsLoginEnabled && passwordLoginEnabled
+  const usingSmsLogin = smsLoginEnabled && (!passwordLoginEnabled || loginMethod === 'sms')
+  const usingPasswordLogin =
+    passwordLoginEnabled && (!smsLoginEnabled || loginMethod === 'password')
   const {
     isTurnstileEnabled,
     turnstileSiteKey,
@@ -87,6 +99,16 @@ export function UserAuthForm({
     validateTurnstile,
   } = useTurnstile()
   const { handleLoginSuccess, redirectTo2FA } = useAuthRedirect()
+  const {
+    isSending: isSendingSmsCode,
+    secondsLeft: smsSecondsLeft,
+    isActive: isSmsActive,
+    sendCode: sendSmsLoginCode,
+  } = useSmsLoginVerification({
+    turnstileToken,
+    validateTurnstile,
+  })
+  const turnstileReady = !isTurnstileEnabled || Boolean(turnstileToken)
 
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
@@ -114,6 +136,14 @@ export function UserAuthForm({
       setAgreedToLegal(true)
     }
   }, [requiresLegalConsent])
+
+  useEffect(() => {
+    if (smsLoginEnabled && !passwordLoginEnabled) {
+      setLoginMethod('sms')
+    } else if (passwordLoginEnabled && !smsLoginEnabled) {
+      setLoginMethod('password')
+    }
+  }, [smsLoginEnabled, passwordLoginEnabled])
 
   useEffect(() => {
     detectPasskeySupport()
@@ -173,6 +203,51 @@ export function UserAuthForm({
     } finally {
       setIsLoading(false)
     }
+  }
+
+  async function onSubmitSms() {
+    if (requiresLegalConsent && !agreedToLegal) {
+      toast.error(legalConsentErrorMessage)
+      return
+    }
+
+    if (!smsPhone.trim()) {
+      toast.error(t('Please enter your phone'))
+      return
+    }
+    if (!smsCode.trim()) {
+      toast.error(t('Please enter the verification code'))
+      return
+    }
+
+    if (!validateTurnstile()) return
+
+    setIsLoading(true)
+    try {
+      const res = await loginWithSms(
+        smsPhone.trim(),
+        smsCode.trim(),
+        turnstileToken
+      )
+
+      if (res.success) {
+        if (res.data?.require_2fa) {
+          redirectTo2FA()
+          return
+        }
+
+        await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
+        toast.success(t('Welcome back!'))
+      }
+    } catch (_error) {
+      // Errors are handled by global interceptor
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleSendSmsLoginCode() {
+    await sendSmsLoginCode(smsPhone.trim())
   }
 
   const handleOpenWeChatDialog = () => {
@@ -322,13 +397,31 @@ export function UserAuthForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit((data) => {
+          if (!usingPasswordLogin) return
+          return onSubmit(data)
+        })}
         className={cn('grid gap-4', className)}
         {...props}
       >
         {hasAlternativeLogin && alternativeLoginMethods}
 
-        {passwordLoginEnabled && (
+        {showLoginTabs && (
+          <Tabs
+            value={loginMethod}
+            onValueChange={(value) => {
+              setLoginMethod(value as 'password' | 'sms')
+              setSmsCode('')
+            }}
+          >
+            <TabsList className='grid w-full grid-cols-2'>
+              <TabsTrigger value='password'>{t('Password')}</TabsTrigger>
+              <TabsTrigger value='sms'>{t('SMS code')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+
+        {usingPasswordLogin && (
           <>
             {/* Username Field */}
             <FormField
@@ -381,17 +474,78 @@ export function UserAuthForm({
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
               {t('Sign in')}
             </Button>
+          </>
+        )}
 
-            {/* Turnstile */}
-            {isTurnstileEnabled && (
-              <div className='mt-2'>
-                <Turnstile
-                  siteKey={turnstileSiteKey}
-                  onVerify={setTurnstileToken}
+        {usingSmsLogin && (
+          <>
+            <div className='grid gap-2'>
+              <Label htmlFor='login-phone'>{t('Phone')}</Label>
+              <Input
+                id='login-phone'
+                placeholder={t('Enter your phone number')}
+                type='tel'
+                value={smsPhone}
+                onChange={(event) => setSmsPhone(event.target.value)}
+                autoComplete='tel'
+                maxLength={11}
+              />
+            </div>
+
+            <div className='flex items-end gap-2'>
+              <div className='flex-1'>
+                <Input
+                  placeholder={t('Verification code')}
+                  value={smsCode}
+                  onChange={(event) => setSmsCode(event.target.value)}
+                  autoComplete='one-time-code'
                 />
               </div>
-            )}
+              <Button
+                variant='outline'
+                type='button'
+                disabled={
+                  isLoading ||
+                  isSendingSmsCode ||
+                  isSmsActive ||
+                  !smsPhone.trim() ||
+                  !turnstileReady
+                }
+                onClick={handleSendSmsLoginCode}
+              >
+                {isSmsActive ? (
+                  t('Resend ({{seconds}}s)', { seconds: smsSecondsLeft })
+                ) : isSendingSmsCode ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : (
+                  t('Send code')
+                )}
+              </Button>
+            </div>
+
+            <Button
+              type='button'
+              className='mt-2 w-full justify-center gap-2'
+              disabled={
+                isLoading ||
+                (requiresLegalConsent && !agreedToLegal) ||
+                !turnstileReady
+              }
+              onClick={onSubmitSms}
+            >
+              {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
+              {t('Sign in')}
+            </Button>
           </>
+        )}
+
+        {(usingPasswordLogin || usingSmsLogin) && isTurnstileEnabled && (
+          <div className='mt-2'>
+            <Turnstile
+              siteKey={turnstileSiteKey}
+              onVerify={setTurnstileToken}
+            />
+          </div>
         )}
 
         <LegalConsent

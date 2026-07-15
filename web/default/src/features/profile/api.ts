@@ -129,6 +129,25 @@ export async function bindWeChat(code: string): Promise<ApiResponse> {
   return res.data
 }
 
+/**
+ * Send SMS verification code for phone binding
+ */
+export async function sendSmsBind(phone: string): Promise<ApiResponse> {
+  const res = await api.get('/api/user/sms_bind', { params: { phone } })
+  return res.data
+}
+
+/**
+ * Bind phone number to account
+ */
+export async function bindPhone(
+  phone: string,
+  code: string
+): Promise<ApiResponse> {
+  const res = await api.post('/api/user/phone/bind', { phone, code })
+  return res.data
+}
+
 // ============================================================================
 // Custom OAuth Binding APIs
 // ============================================================================

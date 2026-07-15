@@ -123,6 +123,44 @@ export async function sendEmailVerification(
   return res.data
 }
 
+// Send SMS verification code for registration
+export async function sendSmsVerification(
+  phone: string,
+  turnstile?: string
+): Promise<ApiResponse> {
+  const res = await api.get('/api/verification/sms', {
+    params: { phone, turnstile },
+  })
+  return res.data
+}
+
+// Send SMS verification code for login
+export async function sendSmsLoginCode(
+  phone: string,
+  turnstile?: string
+): Promise<ApiResponse> {
+  const res = await api.get('/api/verification/sms_login', {
+    params: { phone, turnstile },
+  })
+  return res.data
+}
+
+// User login with phone and SMS verification code
+export async function loginWithSms(
+  phone: string,
+  verification_code: string,
+  turnstile?: string
+) {
+  const res = await api.post<LoginResponse>(
+    `/api/user/login/sms?turnstile=${turnstile ?? ''}`,
+    {
+      phone,
+      verification_code,
+    }
+  )
+  return res.data
+}
+
 // Bind email to OAuth account
 export async function bindEmail(
   email: string,
