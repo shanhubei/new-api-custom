@@ -26,6 +26,8 @@ export {
   logout,
   register,
   sendPasswordResetEmail,
+  sendPasswordResetSms,
+  resetPasswordBySms,
   sendEmailVerification,
   sendSmsVerification,
   sendSmsLoginCode,

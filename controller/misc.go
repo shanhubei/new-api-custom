@@ -318,7 +318,7 @@ func SendSmsVerification(c *gin.Context) {
 		common.ApiErrorMsg(c, "sms service not configured")
 		return
 	}
-	code := common.GenerateVerificationCode(6)
+	code := common.GenerateNumericVerificationCode(6)
 	common.RegisterVerificationCodeWithKey(phone, code, common.SmsRegisterPurpose)
 	if err := common.SendAliyunSms(phone, code); err != nil {
 		common.ApiError(c, err)
@@ -342,7 +342,7 @@ func SendSmsLoginVerification(c *gin.Context) {
 	}
 	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
 		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
-			code := common.GenerateVerificationCode(6)
+			code := common.GenerateNumericVerificationCode(6)
 			common.RegisterVerificationCodeWithKey(phone, code, common.SmsLoginPurpose)
 			if err := common.SendAliyunSms(phone, code); err != nil {
 				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms login verification to %s: %s", phone, err.Error()))
@@ -385,9 +385,46 @@ func SendPasswordResetEmail(c *gin.Context) {
 	})
 }
 
+func smsPasswordResetEnabled() bool {
+	return common.SmsLoginEnabled || common.SmsVerificationEnabled
+}
+
+func SendPasswordResetSms(c *gin.Context) {
+	if !smsPasswordResetEnabled() {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	phone, err := common.NormalizePhone(c.Query("phone"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	// Anti-enumeration: always succeed; only send when a unique enabled user exists.
+	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
+		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
+			code := common.GenerateNumericVerificationCode(6)
+			common.RegisterVerificationCodeWithKey(phone, code, common.SmsPasswordResetPurpose)
+			if err := common.SendAliyunSms(phone, code); err != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
+			}
+		}
+	} else if err != nil && !errors.Is(err, model.ErrPhoneNotFound) {
+		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms password reset for %s: %s", common.MaskPhone(phone), err.Error()))
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
 type PasswordResetRequest struct {
 	Email string `json:"email"`
 	Token string `json:"token"`
+}
+
+type PasswordResetSmsRequest struct {
+	Phone            string `json:"phone"`
+	VerificationCode string `json:"verification_code"`
 }
 
 func ResetPassword(c *gin.Context) {
@@ -423,4 +460,42 @@ func ResetPassword(c *gin.Context) {
 		"data":    password,
 	})
 	return
+}
+
+func ResetPasswordBySms(c *gin.Context) {
+	if !smsPasswordResetEnabled() {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	var req PasswordResetSmsRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	phone, err := common.NormalizePhone(req.Phone)
+	if err != nil || req.VerificationCode == "" {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	fail := func() {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "phone or verification code error",
+		})
+	}
+	if !common.VerifyCodeWithKey(phone, req.VerificationCode, common.SmsPasswordResetPurpose) {
+		fail()
+		return
+	}
+	password := common.GenerateVerificationCode(12)
+	if err := model.ResetUserPasswordByPhone(phone, password); err != nil {
+		fail()
+		return
+	}
+	common.DeleteKey(phone, common.SmsPasswordResetPurpose)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    password,
+	})
 }

@@ -49,6 +49,17 @@ export const forgotPasswordFormSchema = z.object({
   }),
 })
 
+export const forgotPasswordSmsFormSchema = z.object({
+  phone: z
+    .string()
+    .min(1, 'Please enter your phone number')
+    .regex(/^1\d{10}$/, 'Please enter a valid phone number'),
+  verificationCode: z
+    .string()
+    .min(1, 'Please enter the verification code')
+    .regex(/^\d{6}$/, 'Please enter a valid verification code'),
+})
+
 export const otpFormSchema = z.object({
   otp: z.string().min(1, 'Please enter a code.'),
 })

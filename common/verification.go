@@ -1,6 +1,8 @@
 package common
 
 import (
+	"crypto/rand"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -14,11 +16,12 @@ type verificationValue struct {
 }
 
 const (
-	EmailVerificationPurpose = "v"
-	PasswordResetPurpose     = "r"
-	SmsRegisterPurpose       = "sr"
-	SmsLoginPurpose          = "sl"
-	SmsBindPurpose           = "sb"
+	EmailVerificationPurpose   = "v"
+	PasswordResetPurpose       = "r"
+	SmsRegisterPurpose         = "sr"
+	SmsLoginPurpose            = "sl"
+	SmsBindPurpose             = "sb"
+	SmsPasswordResetPurpose    = "sp"
 )
 
 var verificationMutex sync.Mutex
@@ -33,6 +36,26 @@ func GenerateVerificationCode(length int) string {
 		return code
 	}
 	return code[:length]
+}
+
+// GenerateNumericVerificationCode returns a digit-only code for SMS templates
+// that require Aliyun's "数字验证码" variable rules.
+func GenerateNumericVerificationCode(length int) string {
+	if length <= 0 {
+		length = 6
+	}
+	var b strings.Builder
+	b.Grow(length)
+	ten := big.NewInt(10)
+	for i := 0; i < length; i++ {
+		n, err := rand.Int(rand.Reader, ten)
+		if err != nil {
+			// Extremely unlikely; fall back so SMS send can still proceed.
+			n = big.NewInt(int64(i % 10))
+		}
+		b.WriteByte(byte('0' + n.Int64()))
+	}
+	return b.String()
 }
 
 func RegisterVerificationCodeWithKey(key string, code string, purpose string) {

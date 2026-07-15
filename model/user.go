@@ -982,6 +982,21 @@ func ResetUserPasswordByEmail(email string, password string) error {
 	return err
 }
 
+func ResetUserPasswordByPhone(phone string, password string) error {
+	if phone == "" || password == "" {
+		return errors.New("phone or password is empty")
+	}
+	user, err := GetUniqueUserByPhone(phone)
+	if err != nil {
+		return err
+	}
+	hashedPassword, err := common.Password2Hash(password)
+	if err != nil {
+		return err
+	}
+	return DB.Model(&User{}).Where("id = ?", user.Id).Update("password", hashedPassword).Error
+}
+
 func IsAdmin(userId int) bool {
 	if userId == 0 {
 		return false
