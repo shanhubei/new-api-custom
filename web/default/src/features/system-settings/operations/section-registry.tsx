@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { SystemBehaviorSection } from '../general/system-behavior-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
+import { AliyunSmsSettingsSection } from '../integrations/aliyun-sms-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
 import { WorkerSettingsSection } from '../integrations/worker-settings-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
@@ -74,6 +75,22 @@ const OPERATIONS_SECTIONS = [
           SMTPStartTLSEnabled: settings.SMTPStartTLSEnabled,
           SMTPInsecureSkipVerify: settings.SMTPInsecureSkipVerify,
           SMTPForceAuthLogin: settings.SMTPForceAuthLogin,
+        }}
+      />
+    ),
+  },
+  {
+    id: 'aliyun-sms',
+    titleKey: 'Aliyun SMS',
+    build: (settings: OperationsSettings) => (
+      <AliyunSmsSettingsSection
+        defaultValues={{
+          AliyunSmsAccessKeyId: settings.AliyunSmsAccessKeyId,
+          AliyunSmsAccessKeySecret: settings.AliyunSmsAccessKeySecret,
+          AliyunSmsSignName: settings.AliyunSmsSignName,
+          AliyunSmsTemplateCode: settings.AliyunSmsTemplateCode,
+          AliyunSmsTemplateParamCodeKey: settings.AliyunSmsTemplateParamCodeKey,
+          AliyunSmsEndpoint: settings.AliyunSmsEndpoint,
         }}
       />
     ),

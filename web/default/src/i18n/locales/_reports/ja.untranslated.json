@@ -1,6 +1,9 @@
 {
   " and revoke their API access.": " and revoke their API access.",
+  "AccessKey ID": "AccessKey ID",
+  "AccessKey Secret": "AccessKey Secret",
   "Active Users": "Active Users",
+  "Aliyun SMS": "Aliyun SMS",
   "Allow creating and managing third-party UI users under your account.": "Allow creating and managing third-party UI users under your account.",
   "Allow Self-Registration": "Allow Self-Registration",
   "Create a third-party UI user mapped to an API key under your account.": "Create a third-party UI user mapped to an API key under your account.",

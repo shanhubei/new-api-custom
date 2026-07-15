@@ -48,6 +48,8 @@ const basicAuthSchema = z.object({
   PasswordLoginEnabled: z.boolean(),
   PasswordRegisterEnabled: z.boolean(),
   EmailVerificationEnabled: z.boolean(),
+  SmsVerificationEnabled: z.boolean(),
+  SmsLoginEnabled: z.boolean(),
   RegisterEnabled: z.boolean(),
   EmailDomainRestrictionEnabled: z.boolean(),
   EmailAliasRestrictionEnabled: z.boolean(),
@@ -186,6 +188,50 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
                   <FormLabel>{t('Email Verification')}</FormLabel>
                   <FormDescription>
                     {t('Require email verification for new accounts')}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='SmsVerificationEnabled'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('SMS Verification')}</FormLabel>
+                  <FormDescription>
+                    {t(
+                      'Require SMS verification for new accounts; when email verification is also enabled, users choose either'
+                    )}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='SmsLoginEnabled'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('SMS Login')}</FormLabel>
+                  <FormDescription>
+                    {t('Allow users to log in with SMS verification code')}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>
