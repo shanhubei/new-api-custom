@@ -95,6 +95,14 @@ var AliyunSmsSignName = ""
 var AliyunSmsTemplateCode = ""
 var AliyunSmsTemplateParamCodeKey = "code"
 var AliyunSmsEndpoint = ""
+
+// SMS anti-abuse defaults (overridable via OptionMap / admin UI).
+var SmsIPMaxRequests = 2            // short-window IP limit (middleware)
+var SmsIPWindowSeconds = 30         // short-window seconds
+var SmsPhoneCooldownSeconds = 60    // min seconds between sends to same phone
+var SmsPhoneDailyLimit = 10         // max successful sends per phone per day
+var SmsIPDailyLimit = 40            // max successful sends per IP per day
+
 var GitHubOAuthEnabled = false
 var LinuxDOOAuthEnabled = false
 var WeChatAuthEnabled = false

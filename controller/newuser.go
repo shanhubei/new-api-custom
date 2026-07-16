@@ -23,6 +23,8 @@ type newuserRegisterRequest struct {
 	Username     string `json:"username"`
 	Password     string `json:"password"`
 	DisplayName  string `json:"display_name"`
+	Email        string `json:"email"`
+	Phone        string `json:"phone"`
 	OwnerUserId  int    `json:"owner_user_id"`
 	RegisterCode string `json:"register_code"`
 	RegisterType string `json:"register_type"`
@@ -32,11 +34,15 @@ type newuserAdminCreateRequest struct {
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
 	QuotaLimit  int    `json:"quota_limit"`
 }
 
 type newuserAdminUpdateRequest struct {
 	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
 	Status      int    `json:"status"`
 	QuotaLimit  int    `json:"quota_limit"`
 	Password    string `json:"password"`
@@ -149,7 +155,7 @@ func NewuserRegister(c *gin.Context) {
 		return
 	}
 
-	registerType := model.NormalizeNewuserRegisterType(req.RegisterType, req.OwnerUserId)
+	registerType := model.NormalizeNewuserRegisterType(req.RegisterType, req.OwnerUserId, req.RegisterCode)
 	var nu *model.Newuser
 	var token *model.Token
 	var err error
@@ -158,10 +164,21 @@ func NewuserRegister(c *gin.Context) {
 	case model.NewuserRegisterTypeOrg:
 		nu, token, err = model.CreateNewuserOrgWithMainUser(req.Username, req.Password, req.DisplayName, 0)
 	default:
-		ownerId, resolveErr := middleware.ResolveNewuserOwnerId(c, req.OwnerUserId)
-		if resolveErr != nil {
-			c.JSON(http.StatusOK, gin.H{"success": false, "message": resolveErr.Error()})
-			return
+		ownerId := req.OwnerUserId
+		if ownerId <= 0 {
+			if strings.TrimSpace(req.RegisterCode) == "" {
+				ownerId, err = middleware.ResolveNewuserOwnerId(c, req.OwnerUserId)
+				if err != nil {
+					c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+					return
+				}
+			} else {
+				ownerId, err = model.FindOwnerUserIdByRegisterCode(req.RegisterCode)
+				if err != nil {
+					c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid register code"})
+					return
+				}
+			}
 		}
 		if !model.IsNewuserOwnerRegisterEnabled(ownerId) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "registration disabled for this organization"})
@@ -172,7 +189,7 @@ func NewuserRegister(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid register code"})
 			return
 		}
-		nu, token, err = model.CreateNewuserAccount(ownerId, req.Username, req.Password, req.DisplayName, 0)
+		nu, token, err = model.CreateNewuserAccount(ownerId, req.Username, req.Password, req.DisplayName, 0, req.Email, req.Phone)
 	}
 
 	if err != nil {
@@ -193,6 +210,35 @@ func NewuserRegister(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    newuserAuthResponse(nu, jwtToken, "sk-"+token.Key),
+	})
+}
+
+// NewuserRegisterInfo resolves a unique invite code for the public web register page.
+func NewuserRegisterInfo(c *gin.Context) {
+	code := strings.TrimSpace(c.Query("code"))
+	if code == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "register code is required"})
+		return
+	}
+	ownerId, err := model.FindOwnerUserIdByRegisterCode(code)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid register code"})
+		return
+	}
+	if !model.IsNewuserOwnerRegisterEnabled(ownerId) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "registration disabled for this organization"})
+		return
+	}
+	brief := model.GetNewuserOwnerBrief(ownerId)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"owner_user_id":      ownerId,
+			"owner_username":     brief.Username,
+			"owner_display_name": brief.DisplayName,
+			"register_code":      code,
+		},
 	})
 }
 
@@ -383,7 +429,7 @@ func NewuserAdminCreate(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
 		return
 	}
-	nu, token, err := model.CreateNewuserAccount(ownerId, req.Username, req.Password, req.DisplayName, req.QuotaLimit)
+	nu, token, err := model.CreateNewuserAccount(ownerId, req.Username, req.Password, req.DisplayName, req.QuotaLimit, req.Email, req.Phone)
 	if err != nil {
 		msg := err.Error()
 		if errors.Is(err, model.ErrNewuserDuplicate) {
@@ -423,6 +469,21 @@ func NewuserAdminUpdate(c *gin.Context) {
 	if strings.TrimSpace(req.DisplayName) != "" {
 		nu.DisplayName = strings.TrimSpace(req.DisplayName)
 	}
+	email, phone, contactErr := model.NormalizeNewuserContact(req.Email, req.Phone)
+	if contactErr != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": contactErr.Error()})
+		return
+	}
+	if email != "" && model.IsNewuserEmailTaken(email, nu.Id) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "email already exists"})
+		return
+	}
+	if phone != "" && model.IsNewuserPhoneTaken(phone, nu.Id) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "phone already exists"})
+		return
+	}
+	nu.Email = email
+	nu.Phone = phone
 	if req.Status == common.UserStatusEnabled || req.Status == common.UserStatusDisabled {
 		nu.Status = req.Status
 		if nu.TokenId > 0 {
@@ -496,13 +557,26 @@ func NewuserAdminUpdateSettings(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
 		return
 	}
-	if req.RegisterEnabled && strings.TrimSpace(req.RegisterCode) == "" {
+	registerCode := strings.TrimSpace(req.RegisterCode)
+	if req.RegisterEnabled && registerCode == "" {
+		registerCode = model.GenerateUniqueNewuserRegisterCode()
+	}
+	if req.RegisterEnabled && registerCode == "" {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "register_code is required when register is enabled"})
 		return
 	}
-	if err := model.SetNewuserOwnerSettings(ownerId, req.Enabled, req.RegisterEnabled, req.RegisterCode); err != nil {
-		common.ApiError(c, err)
+	if err := model.SetNewuserOwnerSettings(ownerId, req.Enabled, req.RegisterEnabled, registerCode); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"enabled":          req.Enabled,
+			"register_enabled": req.RegisterEnabled,
+			"register_code":    registerCode,
+			"owner_user_id":    ownerId,
+		},
+	})
 }

@@ -351,6 +351,11 @@ export type OperationsSettings = {
   AliyunSmsTemplateCode: string
   AliyunSmsTemplateParamCodeKey: string
   AliyunSmsEndpoint: string
+  SmsIPMaxRequests: string
+  SmsIPWindowSeconds: string
+  SmsPhoneCooldownSeconds: string
+  SmsPhoneDailyLimit: string
+  SmsIPDailyLimit: string
   WorkerUrl: string
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean

@@ -16,21 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export const NEWUSER_STATUS = {
-  ENABLED: 1,
-  DISABLED: 2,
-} as const
+import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
 
-export const SUCCESS_MESSAGES = {
-  CREATED: 'Team user created successfully',
-  UPDATED: 'Team user updated successfully',
-  DELETED: 'Team user disabled successfully',
-  SETTINGS_SAVED: 'Team user settings saved',
-} as const
+import { NewuserRegisterPage } from '@/features/newuser-register'
 
-export const ERROR_MESSAGES = {
-  UNEXPECTED: 'An unexpected error occurred',
-  MODULE_DISABLED: 'Team user module is disabled on this server',
-  ORG_DISABLED: 'Team users are not enabled for your organization',
-  DELETE_FAILED: 'Failed to disable team user',
-} as const
+const searchSchema = z.object({
+  code: z.string().optional(),
+})
+
+export const Route = createFileRoute('/(auth)/newuser/register')({
+  validateSearch: searchSchema,
+  component: NewuserRegisterRoute,
+})
+
+function NewuserRegisterRoute() {
+  const { code } = Route.useSearch()
+  return <NewuserRegisterPage inviteCode={code || ''} />
+}

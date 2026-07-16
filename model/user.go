@@ -833,12 +833,20 @@ func (user *User) ValidateAndFill() (err error) {
 	// that means if your field's value is 0, '', false or other zero values,
 	// it won't be used to build query conditions
 	password := user.Password
-	username := strings.TrimSpace(user.Username)
-	if username == "" || password == "" {
+	identity := strings.TrimSpace(user.Username)
+	if identity == "" || password == "" {
 		return ErrUserEmptyCredentials
 	}
-	// find by username or email
-	err = DB.Where("username = ? OR email = ?", username, username).First(user).Error
+	// find by username, email, or phone (normalize email/phone when applicable)
+	emailCandidate := identity
+	if strings.Contains(identity, "@") {
+		emailCandidate = NormalizeEmail(identity)
+	}
+	query := DB.Where("username = ? OR email = ?", identity, emailCandidate)
+	if phone, phoneErr := common.NormalizePhone(identity); phoneErr == nil {
+		query = DB.Where("username = ? OR email = ? OR phone = ?", identity, emailCandidate, phone)
+	}
+	err = query.First(user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrInvalidCredentials

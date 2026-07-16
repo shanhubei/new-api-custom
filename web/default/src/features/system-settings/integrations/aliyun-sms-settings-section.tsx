@@ -47,6 +47,11 @@ const aliyunSmsSchema = z.object({
   AliyunSmsTemplateCode: z.string(),
   AliyunSmsTemplateParamCodeKey: z.string(),
   AliyunSmsEndpoint: z.string(),
+  SmsIPMaxRequests: z.string(),
+  SmsIPWindowSeconds: z.string(),
+  SmsPhoneCooldownSeconds: z.string(),
+  SmsPhoneDailyLimit: z.string(),
+  SmsIPDailyLimit: z.string(),
 })
 
 type AliyunSmsFormValues = z.infer<typeof aliyunSmsSchema>
@@ -76,6 +81,11 @@ export function AliyunSmsSettingsSection({
       AliyunSmsTemplateCode: values.AliyunSmsTemplateCode.trim(),
       AliyunSmsTemplateParamCodeKey: values.AliyunSmsTemplateParamCodeKey.trim(),
       AliyunSmsEndpoint: values.AliyunSmsEndpoint.trim(),
+      SmsIPMaxRequests: values.SmsIPMaxRequests.trim(),
+      SmsIPWindowSeconds: values.SmsIPWindowSeconds.trim(),
+      SmsPhoneCooldownSeconds: values.SmsPhoneCooldownSeconds.trim(),
+      SmsPhoneDailyLimit: values.SmsPhoneDailyLimit.trim(),
+      SmsIPDailyLimit: values.SmsIPDailyLimit.trim(),
     }
 
     const initial = {
@@ -86,6 +96,11 @@ export function AliyunSmsSettingsSection({
       AliyunSmsTemplateParamCodeKey:
         defaultValues.AliyunSmsTemplateParamCodeKey.trim(),
       AliyunSmsEndpoint: defaultValues.AliyunSmsEndpoint.trim(),
+      SmsIPMaxRequests: defaultValues.SmsIPMaxRequests.trim(),
+      SmsIPWindowSeconds: defaultValues.SmsIPWindowSeconds.trim(),
+      SmsPhoneCooldownSeconds: defaultValues.SmsPhoneCooldownSeconds.trim(),
+      SmsPhoneDailyLimit: defaultValues.SmsPhoneDailyLimit.trim(),
+      SmsIPDailyLimit: defaultValues.SmsIPDailyLimit.trim(),
     }
 
     const updates: Array<{ key: string; value: string }> = []
@@ -136,6 +151,19 @@ export function AliyunSmsSettingsSection({
         key: 'AliyunSmsEndpoint',
         value: sanitized.AliyunSmsEndpoint,
       })
+    }
+
+    const intKeys = [
+      'SmsIPMaxRequests',
+      'SmsIPWindowSeconds',
+      'SmsPhoneCooldownSeconds',
+      'SmsPhoneDailyLimit',
+      'SmsIPDailyLimit',
+    ] as const
+    for (const key of intKeys) {
+      if (sanitized[key] !== initial[key] && sanitized[key] !== '') {
+        updates.push({ key, value: sanitized[key] })
+      }
     }
 
     for (const update of updates) {
@@ -284,6 +312,125 @@ export function AliyunSmsSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t('Leave blank to use the default Aliyun Dysmsapi endpoint')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='SmsIPMaxRequests'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('SMS IP max requests')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      autoComplete='off'
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Max SMS API calls per IP within the short time window'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='SmsIPWindowSeconds'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('SMS IP window (seconds)')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      autoComplete='off'
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Short IP rate-limit window in seconds')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='SmsPhoneCooldownSeconds'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('SMS phone cooldown (seconds)')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      autoComplete='off'
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Minimum seconds between successful SMS sends to the same phone'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='SmsPhoneDailyLimit'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('SMS phone daily limit')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      autoComplete='off'
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Max successful SMS sends per phone number per day')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='SmsIPDailyLimit'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('SMS IP daily limit')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      autoComplete='off'
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Max successful SMS sends per IP address per day')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

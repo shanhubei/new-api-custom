@@ -21,6 +21,7 @@
 - [管理后台 UI](#管理后台-ui)
 - [上线步骤](#上线步骤)
 - [API 参考](#api-参考)
+- [短信认证 API 与防轰炸](#短信认证-api-与防轰炸)
 - [计费与限额](#计费与限额)
 - [数据库](#数据库)
 - [升级维护](#升级维护)
@@ -471,16 +472,24 @@ Authorization: Bearer <login 返回的 token>
 
 ## 管理后台 UI
 
-登录主账号后，侧边栏 **个人 → 第三方用户**（路径 `/newusers`，Default 主题）：
+登录主账号后，侧边栏 **个人 → 团队用户**（路径 `/newusers`，Default 主题）：
 
 | 功能 | 说明 |
 |------|------|
-| 组织设置 | 启用/关闭本组织第三方用户、自助注册、邀请码 |
+| 组织设置 | 启用/关闭本组织团队用户、自助注册、**全局唯一**邀请码、分享注册链接 |
 | 统计卡片 | 用户总数、活跃数、总已用配额 |
-| 用户列表 | 用户名、状态、已用/限额、上次登录 |
-| 新建/编辑 | 创建用户、修改密码/限额/状态 |
+| 用户列表 | 用户名、显示名、邮箱、手机号、状态、已用/限额、上次登录 |
+| 新建/编辑 | 创建用户；可选填邮箱/手机号（便于用户自行重置密码）；修改密码/限额/状态 |
 | 查看用量 | 本用户用量 + **组织钱包余量** + 最近日志 |
 | 禁用 | 禁用用户并停用对应 Token |
+
+### 自助注册与邀请码
+
+- 每个组织的 `register_code` **全局唯一**（不能与其他团队相同）。
+- 开启自助注册后，可分享 Web 链接：`/newuser/register?code=<唯一邀请码>`，注册成功后归属到该团队。
+- **方案 B：** 自带 Web **仅提供注册页**；团队账号登录只在**桌面客户端**（`POST /api/newuser/register` / `/api/newuser/login`），不在 Web `/sign-in`。
+- 外部/第三方 UI 仍可调用 `POST /api/newuser/register`，只需携带唯一 `register_code`（可不传 `owner_user_id`）。
+- 查询邀请码对应组织：`GET /api/newuser/register/info?code=<唯一邀请码>`。
 
 ---
 
@@ -506,14 +515,14 @@ Cookie: session=...
 
 {
   "enabled": true,
-  "register_enabled": false,
-  "register_code": ""
+  "register_enabled": true,
+  "register_code": "TEAM-UNIQUE-CODE"
 }
 ```
 
-### 4. 创建第三方用户
+### 4. 创建团队用户
 
-**方式 A：管理后台 UI** — 个人 → 第三方用户 → 新建
+**方式 A：管理后台 UI** — 个人 → 团队用户 → 新建（可选手动填写邮箱/手机号）
 
 **方式 B：API**
 
@@ -526,11 +535,16 @@ Cookie: session=...
   "username": "soubao123",
   "password": "12345678",
   "display_name": "搜宝用户",
+  "email": "user@example.com",
+  "phone": "13800138000",
   "quota_limit": 0
 }
 ```
 
-**方式 C：自助注册** — 开启 `register_enabled` 后，第三方 UI 调 `POST /api/newuser/register`
+**方式 C：自助注册**
+
+- Web：打开 `/newuser/register?code=TEAM-UNIQUE-CODE`
+- API：开启 `register_enabled` 后调 `POST /api/newuser/register`（带唯一邀请码）
 
 ### 5. 第三方 UI 集成
 
@@ -596,6 +610,93 @@ Cookie: session=...
 
 ---
 
+## 短信认证 API 与防轰炸
+
+本节记录本仓库增量的**主账号（users）**短信能力：注册验证、短信登录、忘记密码、绑定手机，以及防短信轰炸配置。接口挂在 `/api/*`（非 `/api/newuser/*`），与邮件验证并存。
+
+### 开关与通道
+
+| 配置项 | 位置 | 说明 |
+|--------|------|------|
+| `SmsVerificationEnabled` | 系统设置 → 认证 / Basic Auth | 注册可用短信验证（可与邮箱二选一） |
+| `SmsLoginEnabled` | 同上 | 登录页短信验证码 Tab；忘记密码短信路径也依赖「登录或注册短信」任一开启 |
+| 阿里云短信 | 系统设置 → 运维 → 阿里云短信 | AccessKey、签名、模板 CODE、变量键（默认 `code`） |
+| 防轰炸限额 | 同上「阿里云短信」区块下部 | IP/手机号短时与日限额（见下） |
+
+模板须为阿里云**数字验证码**类型；系统发送 6 位纯数字码。
+
+`/api/status` 增加：
+
+- `sms_verification`
+- `sms_login`
+
+### 防轰炸策略
+
+| 层级 | 默认 | 配置 Key | 说明 |
+|------|------|----------|------|
+| IP 短时窗口 | 30 秒内最多 2 次 | `SmsIPMaxRequests` / `SmsIPWindowSeconds` | 中间件拦截所有发码请求（含未真正发信的尝试） |
+| 同手机号冷却 | 60 秒 | `SmsPhoneCooldownSeconds` | 上次**成功发出**短信后的最小间隔 |
+| 同手机号日限额 | 10 次/天 | `SmsPhoneDailyLimit` | 按自然日累计成功发送 |
+| 同 IP 日限额 | 40 次/天 | `SmsIPDailyLimit` | 按自然日累计成功发送 |
+| Turnstile | 可选全局 | `TurnstileCheckEnabled` | 匿名发码/重置接口已挂载 Turnstile |
+
+另：登录发码、忘记密码发码采用**防枚举**——无论手机号是否存在均返回 `success: true`，仅当命中唯一启用用户时才真正调用阿里云。
+
+建议生产环境同时开启 **Turnstile** + Redis（日限额/冷却在 Redis 更准确；无 Redis 时退化为进程内内存计数）。
+
+### 发码与校验 API
+
+| 方法 | 路径 | 鉴权 | 用途 |
+|------|------|------|------|
+| GET | `/api/verification/sms?phone=` | 公开 + 限流 + Turnstile | 注册短信验证码 |
+| GET | `/api/verification/sms_login?phone=` | 同上 | 登录短信验证码（防枚举） |
+| GET | `/api/reset_password/sms?phone=` | 同上 | 忘记密码短信验证码（防枚举） |
+| GET | `/api/user/sms_bind?phone=` | Session 登录 + 限流 | 绑定手机发码 |
+| POST | `/api/user/phone/bind` | Session 登录 | `{ "phone", "code" }` 绑定 |
+| POST | `/api/user/login/sms` | 公开 + Turnstile | `{ "phone", "verification_code" }` 短信登录 |
+| POST | `/api/user/reset/sms` | 公开 + Turnstile | `{ "phone", "verification_code" }` 短信重置密码，返回新密码字符串 |
+| POST | `/api/user/register` | 公开 | 可带 `phone` + `verification_code`（短信路径） |
+
+原有邮件流程不变：
+
+- `GET /api/verification?email=`
+- `GET /api/reset_password?email=`
+- `POST /api/user/reset`（邮件链接 token）
+
+#### 注册发码示例
+
+```http
+GET /api/verification/sms?phone=13800138000&turnstile=...
+```
+
+成功：`{ "success": true }`；触发防轰炸时返回具体限制文案。
+
+#### 短信登录示例
+
+```http
+POST /api/user/login/sms?turnstile=...
+Content-Type: application/json
+
+{ "phone": "13800138000", "verification_code": "123456" }
+```
+
+成功后与密码登录相同：写 Cookie Session；若开启 2FA 则返回 `require_2fa`。
+
+#### 短信重置密码示例
+
+```http
+GET /api/reset_password/sms?phone=13800138000&turnstile=...
+
+POST /api/user/reset/sms?turnstile=...
+Content-Type: application/json
+
+{ "phone": "13800138000", "verification_code": "123456" }
+```
+
+成功响应：`{ "success": true, "data": "<新密码>" }`（与邮件重置一致，服务端生成随机密码）。
+
+---
+
 #### POST `/api/newuser/register`
 
 统一注册接口，通过 `register_type` 区分组织主账号与成员。
@@ -611,22 +712,28 @@ Cookie: session=...
 }
 ```
 
-**`register_type: "member"`** — 仅在第三方表注册（需组织开启 `register_enabled` + 邀请码）：
+**`register_type: "member"`** — 仅在团队用户表注册（需组织开启 `register_enabled` + **全局唯一**邀请码）：
 
 ```json
 {
   "register_type": "member",
-  "owner_user_id": 2,
-  "register_code": "your-invite-code",
+  "register_code": "TEAM-UNIQUE-CODE",
   "username": "bob",
   "password": "12345678",
-  "display_name": "Bob"
+  "display_name": "Bob",
+  "email": "bob@example.com",
+  "phone": "13800138000"
 }
 ```
 
-未传 `register_type` 时：有 `owner_user_id` → `member`；无 → `org`。
+- `register_code` 全局唯一；仅凭邀请码即可归属团队，`owner_user_id` 可选。
+- `email` / `phone` 选填。
 
-未传 `owner_user_id` 的 `member` 注册可使用 `NEWUSER_DEFAULT_OWNER_ID`。
+未传 `register_type` 时：有 `owner_user_id` 或 `register_code` → `member`；无 → `org`。
+
+#### GET `/api/newuser/register/info?code=`
+
+校验邀请码并返回所属组织摘要（用于 Web 注册页展示）。
 
 ---
 

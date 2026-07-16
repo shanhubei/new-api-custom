@@ -33,7 +33,7 @@ export function NewusersStatsCards({ summary }: NewusersStatsCardsProps) {
 
   const cards = [
     {
-      title: t('Total Third-Party Users'),
+      title: t('Total Team Users'),
       value: summary?.total_users ?? 0,
       icon: Users,
     },

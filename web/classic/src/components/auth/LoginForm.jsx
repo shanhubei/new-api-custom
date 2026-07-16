@@ -888,8 +888,8 @@ const LoginForm = () => {
               <Form className='space-y-3'>
                 <Form.Input
                   field='username'
-                  label={t('用户名或邮箱')}
-                  placeholder={t('请输入您的用户名或邮箱地址')}
+                  label={t('用户名、邮箱或手机号')}
+                  placeholder={t('请输入您的用户名、邮箱或手机号')}
                   name='username'
                   onChange={(value) => handleChange('username', value)}
                   prefix={<IconMail />}

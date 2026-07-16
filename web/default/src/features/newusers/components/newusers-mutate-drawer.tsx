@@ -7,9 +7,9 @@ published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
@@ -84,6 +84,12 @@ function getFormSchema(isUpdate: boolean, t: (key: string) => string) {
           .min(8, t('Password must be at least 8 characters'))
           .max(64, t('Password is too long')),
     display_name: z.string().max(64).optional(),
+    email: z
+      .string()
+      .email(t('Please enter a valid email address'))
+      .optional()
+      .or(z.literal('')),
+    phone: z.string().max(20).optional(),
     quota_limit: z.coerce.number().min(0).optional(),
     status: z.coerce.number().optional(),
   })
@@ -109,6 +115,8 @@ export function NewusersMutateDrawer({
       username: '',
       password: '',
       display_name: '',
+      email: '',
+      phone: '',
       quota_limit: 0,
       status: NEWUSER_STATUS.ENABLED,
     },
@@ -121,6 +129,8 @@ export function NewusersMutateDrawer({
         username: currentRow.username,
         password: '',
         display_name: currentRow.display_name,
+        email: currentRow.email || '',
+        phone: currentRow.phone || '',
         quota_limit: currentRow.quota_limit,
         status: currentRow.status,
       })
@@ -130,6 +140,8 @@ export function NewusersMutateDrawer({
       username: '',
       password: '',
       display_name: '',
+      email: '',
+      phone: '',
       quota_limit: 0,
       status: NEWUSER_STATUS.ENABLED,
     })
@@ -141,6 +153,8 @@ export function NewusersMutateDrawer({
       if (isUpdate && currentRow) {
         const payload = {
           display_name: values.display_name?.trim() || currentRow.display_name,
+          email: values.email?.trim() || '',
+          phone: values.phone?.trim() || '',
           status: values.status ?? currentRow.status,
           quota_limit: values.quota_limit ?? currentRow.quota_limit,
           password: values.password?.trim() || undefined,
@@ -160,6 +174,8 @@ export function NewusersMutateDrawer({
         username: values.username?.trim() || '',
         password: values.password || '',
         display_name: values.display_name?.trim() || values.username?.trim() || '',
+        email: values.email?.trim() || '',
+        phone: values.phone?.trim() || '',
         quota_limit: values.quota_limit ?? 0,
       })
       if (result.success) {
@@ -181,15 +197,13 @@ export function NewusersMutateDrawer({
       <SheetContent className={sideDrawerContentClassName}>
         <SheetHeader className={sideDrawerHeaderClassName}>
           <SheetTitle>
-            {isUpdate
-              ? t('Update Third-Party User')
-              : t('Create Third-Party User')}
+            {isUpdate ? t('Update Team User') : t('Create Team User')}
           </SheetTitle>
           <SheetDescription>
             {isUpdate
-              ? t('Update third-party user settings and quota limits.')
+              ? t('Update team user settings and quota limits.')
               : t(
-                  'Create a third-party UI user mapped to an API key under your account.'
+                  'Create a team user mapped to an API key under your account.'
                 )}
           </SheetDescription>
         </SheetHeader>
@@ -258,6 +272,46 @@ export function NewusersMutateDrawer({
 
             <FormField
               control={form.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Email')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='email'
+                      placeholder={t('Optional email address')}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Optional. If email or phone is filled, the user can reset their password themselves.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='phone'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Phone')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t('Optional phone number')}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name='quota_limit'
               render={({ field }) => (
                 <FormItem>
@@ -268,7 +322,9 @@ export function NewusersMutateDrawer({
                     <Input type='number' min={0} {...field} />
                   </FormControl>
                   <FormDescription>
-                    {t('Set to 0 to share your account wallet without a per-user cap.')}
+                    {t(
+                      'Set to 0 to share your account wallet without a per-user cap.'
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

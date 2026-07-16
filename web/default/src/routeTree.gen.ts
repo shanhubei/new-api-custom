@@ -56,6 +56,7 @@ import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
+import { Route as authNewuserRegisterRouteImport } from './routes/(auth)/newuser/register'
 import { Route as AuthenticatedSystemSettingsSiteIndexRouteImport } from './routes/_authenticated/system-settings/site/index'
 import { Route as AuthenticatedSystemSettingsSecurityIndexRouteImport } from './routes/_authenticated/system-settings/security/index'
 import { Route as AuthenticatedSystemSettingsOperationsIndexRouteImport } from './routes/_authenticated/system-settings/operations/index'
@@ -321,6 +322,11 @@ const authUserResetRoute = authUserResetRouteImport.update({
   path: '/user/reset',
   getParentRoute: () => authRouteRoute,
 } as any)
+const authNewuserRegisterRoute = authNewuserRegisterRouteImport.update({
+  id: '/newuser/register',
+  path: '/newuser/register',
+  getParentRoute: () => authRouteRoute,
+} as any)
 const AuthenticatedSystemSettingsSiteIndexRoute =
   AuthenticatedSystemSettingsSiteIndexRouteImport.update({
     id: '/site/',
@@ -431,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/newuser/register': typeof authNewuserRegisterRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -491,6 +498,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
+  '/newuser/register': typeof authNewuserRegisterRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -555,6 +563,7 @@ export interface FileRoutesById {
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/(auth)/newuser/register': typeof authNewuserRegisterRoute
   '/(auth)/user/reset': typeof authUserResetRoute
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -618,6 +627,7 @@ export interface FileRouteTypes {
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
+    | '/newuser/register'
     | '/user/reset'
     | '/chat/$chatId'
     | '/dashboard/$section'
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/rankings'
     | '/setup'
+    | '/newuser/register'
     | '/user/reset'
     | '/chat/$chatId'
     | '/dashboard/$section'
@@ -741,6 +752,7 @@ export interface FileRouteTypes {
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
+    | '/(auth)/newuser/register'
     | '/(auth)/user/reset'
     | '/_authenticated/chat/$chatId'
     | '/_authenticated/dashboard/$section'
@@ -1130,6 +1142,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authUserResetRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/(auth)/newuser/register': {
+      id: '/(auth)/newuser/register'
+      path: '/newuser/register'
+      fullPath: '/newuser/register'
+      preLoaderRoute: typeof authNewuserRegisterRouteImport
+      parentRoute: typeof authRouteRoute
+    }
     '/_authenticated/system-settings/site/': {
       id: '/_authenticated/system-settings/site/'
       path: '/site'
@@ -1239,6 +1258,7 @@ interface authRouteRouteChildren {
   authResetRoute: typeof authResetRoute
   authSignInRoute: typeof authSignInRoute
   authSignUpRoute: typeof authSignUpRoute
+  authNewuserRegisterRoute: typeof authNewuserRegisterRoute
   authUserResetRoute: typeof authUserResetRoute
 }
 
@@ -1250,6 +1270,7 @@ const authRouteRouteChildren: authRouteRouteChildren = {
   authResetRoute: authResetRoute,
   authSignInRoute: authSignInRoute,
   authSignUpRoute: authSignUpRoute,
+  authNewuserRegisterRoute: authNewuserRegisterRoute,
   authUserResetRoute: authUserResetRoute,
 }
 

@@ -110,7 +110,7 @@ export function useSidebarData(): SidebarData {
             icon: Wallet,
           },
           {
-            title: t('Third-Party Users'),
+            title: t('Team Users'),
             url: '/newusers',
             icon: UserRound,
           },

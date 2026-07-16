@@ -318,12 +318,17 @@ func SendSmsVerification(c *gin.Context) {
 		common.ApiErrorMsg(c, "sms service not configured")
 		return
 	}
+	if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+		common.ApiErrorMsg(c, common.SmsAbuseMessage(err))
+		return
+	}
 	code := common.GenerateNumericVerificationCode(6)
 	common.RegisterVerificationCodeWithKey(phone, code, common.SmsRegisterPurpose)
 	if err := common.SendAliyunSms(phone, code); err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	common.MarkSmsSent(c.ClientIP(), phone)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -342,14 +347,21 @@ func SendSmsLoginVerification(c *gin.Context) {
 	}
 	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
 		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
-			code := common.GenerateNumericVerificationCode(6)
-			common.RegisterVerificationCodeWithKey(phone, code, common.SmsLoginPurpose)
-			if err := common.SendAliyunSms(phone, code); err != nil {
-				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms login verification to %s: %s", phone, err.Error()))
+			if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+				// Anti-enumeration: still return success.
+				logger.LogWarn(c.Request.Context(), fmt.Sprintf("sms login blocked by abuse guard for %s: %s", common.MaskPhone(phone), err.Error()))
+			} else {
+				code := common.GenerateNumericVerificationCode(6)
+				common.RegisterVerificationCodeWithKey(phone, code, common.SmsLoginPurpose)
+				if err := common.SendAliyunSms(phone, code); err != nil {
+					logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms login verification to %s: %s", common.MaskPhone(phone), err.Error()))
+				} else {
+					common.MarkSmsSent(c.ClientIP(), phone)
+				}
 			}
 		}
 	} else if err != nil && !errors.Is(err, model.ErrPhoneNotFound) {
-		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms login verification for %s: %s", phone, err.Error()))
+		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms login verification for %s: %s", common.MaskPhone(phone), err.Error()))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -402,10 +414,16 @@ func SendPasswordResetSms(c *gin.Context) {
 	// Anti-enumeration: always succeed; only send when a unique enabled user exists.
 	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
 		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
-			code := common.GenerateNumericVerificationCode(6)
-			common.RegisterVerificationCodeWithKey(phone, code, common.SmsPasswordResetPurpose)
-			if err := common.SendAliyunSms(phone, code); err != nil {
-				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
+			if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+				logger.LogWarn(c.Request.Context(), fmt.Sprintf("sms password reset blocked by abuse guard for %s: %s", common.MaskPhone(phone), err.Error()))
+			} else {
+				code := common.GenerateNumericVerificationCode(6)
+				common.RegisterVerificationCodeWithKey(phone, code, common.SmsPasswordResetPurpose)
+				if err := common.SendAliyunSms(phone, code); err != nil {
+					logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
+				} else {
+					common.MarkSmsSent(c.ClientIP(), phone)
+				}
 			}
 		}
 	} else if err != nil && !errors.Is(err, model.ErrPhoneNotFound) {

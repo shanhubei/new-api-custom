@@ -63,7 +63,7 @@ function NewusersContent() {
   return (
     <>
       <SectionPageLayout>
-        <SectionPageLayout.Title>{t('Third-Party Users')}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>{t('Team Users')}</SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <NewusersPrimaryButtons disabled={!orgEnabled} />
         </SectionPageLayout.Actions>

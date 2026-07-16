@@ -47,6 +47,11 @@ func InitOptionMap() {
 	common.OptionMap["AliyunSmsTemplateCode"] = ""
 	common.OptionMap["AliyunSmsTemplateParamCodeKey"] = common.AliyunSmsTemplateParamCodeKey
 	common.OptionMap["AliyunSmsEndpoint"] = ""
+	common.OptionMap["SmsIPMaxRequests"] = strconv.Itoa(common.SmsIPMaxRequests)
+	common.OptionMap["SmsIPWindowSeconds"] = strconv.Itoa(common.SmsIPWindowSeconds)
+	common.OptionMap["SmsPhoneCooldownSeconds"] = strconv.Itoa(common.SmsPhoneCooldownSeconds)
+	common.OptionMap["SmsPhoneDailyLimit"] = strconv.Itoa(common.SmsPhoneDailyLimit)
+	common.OptionMap["SmsIPDailyLimit"] = strconv.Itoa(common.SmsIPDailyLimit)
 	common.OptionMap["GitHubOAuthEnabled"] = strconv.FormatBool(common.GitHubOAuthEnabled)
 	common.OptionMap["LinuxDOOAuthEnabled"] = strconv.FormatBool(common.LinuxDOOAuthEnabled)
 	common.OptionMap["TelegramOAuthEnabled"] = strconv.FormatBool(common.TelegramOAuthEnabled)
@@ -407,6 +412,26 @@ func updateOptionMap(key string, value string) (err error) {
 		common.AliyunSmsTemplateParamCodeKey = value
 	case "AliyunSmsEndpoint":
 		common.AliyunSmsEndpoint = value
+	case "SmsIPMaxRequests":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			common.SmsIPMaxRequests = v
+		}
+	case "SmsIPWindowSeconds":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			common.SmsIPWindowSeconds = v
+		}
+	case "SmsPhoneCooldownSeconds":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			common.SmsPhoneCooldownSeconds = v
+		}
+	case "SmsPhoneDailyLimit":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			common.SmsPhoneDailyLimit = v
+		}
+	case "SmsIPDailyLimit":
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			common.SmsIPDailyLimit = v
+		}
 	case "ServerAddress":
 		system_setting.ServerAddress = value
 	case "WorkerUrl":

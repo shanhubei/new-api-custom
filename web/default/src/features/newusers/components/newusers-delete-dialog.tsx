@@ -69,7 +69,7 @@ export function NewusersDeleteDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t('This will disable third-party user')}{' '}
+            {t('This will disable team user')}{' '}
             <span className='font-semibold'>{currentRow?.username}</span>
             {t(' and revoke their API access.')}
           </AlertDialogDescription>

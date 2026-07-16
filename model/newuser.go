@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -25,7 +26,7 @@ var (
 	ErrNewuserDuplicate     = errors.New("newuser already exists")
 )
 
-// Newuser 第三方 UI 用户，映射到 OwnerUserId（原有 new-api 用户，即“组织”）下的一个 Token。
+// Newuser 团队用户，映射到 OwnerUserId（原有 new-api 用户，即“组织/团队”）下的一个 Token。
 // Username 全站唯一，登录时仅需 username + password 即可定位所属组织。
 type Newuser struct {
 	Id            int            `json:"id"`
@@ -33,6 +34,8 @@ type Newuser struct {
 	Username      string         `json:"username" gorm:"size:64;uniqueIndex"`
 	Password      string         `json:"-"`
 	DisplayName   string         `json:"display_name" gorm:"size:64"`
+	Email         string         `json:"email" gorm:"size:64;index"`
+	Phone         string         `json:"phone" gorm:"size:20;index"`
 	Status        int            `json:"status" gorm:"type:int;default:1"`
 	TokenId       int            `json:"token_id" gorm:"index"`
 	QuotaLimit    int            `json:"quota_limit" gorm:"type:int;default:0"`
@@ -57,13 +60,13 @@ func IsNewuserOrgSelfRegisterEnabled() bool {
 	return common.NewuserOrgSelfRegisterEnabled
 }
 
-func NormalizeNewuserRegisterType(registerType string, ownerUserId int) string {
+func NormalizeNewuserRegisterType(registerType string, ownerUserId int, registerCode string) string {
 	registerType = strings.ToLower(strings.TrimSpace(registerType))
 	switch registerType {
 	case NewuserRegisterTypeOrg, NewuserRegisterTypeMember:
 		return registerType
 	}
-	if ownerUserId > 0 {
+	if ownerUserId > 0 || strings.TrimSpace(registerCode) != "" {
 		return NewuserRegisterTypeMember
 	}
 	return NewuserRegisterTypeOrg
@@ -104,13 +107,118 @@ func GetNewuserOwnerRegisterCode(ownerUserId int) string {
 	return common.OptionMap[newuserOwnerOptionKey(ownerUserId, "register_code")]
 }
 
+// FindOwnerUserIdByRegisterCode resolves the organization from a globally unique invite code.
+func FindOwnerUserIdByRegisterCode(code string) (int, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return 0, errors.New("invalid register code")
+	}
+	const prefix = "newuser.owner."
+	const suffix = ".register_code"
+	found := 0
+	common.OptionMapRWMutex.RLock()
+	defer common.OptionMapRWMutex.RUnlock()
+	for key, val := range common.OptionMap {
+		if val != code || !strings.HasPrefix(key, prefix) || !strings.HasSuffix(key, suffix) {
+			continue
+		}
+		mid := strings.TrimSuffix(strings.TrimPrefix(key, prefix), suffix)
+		id, err := strconv.Atoi(mid)
+		if err != nil || id <= 0 {
+			continue
+		}
+		if found > 0 && found != id {
+			return 0, errors.New("register code conflict")
+		}
+		found = id
+	}
+	if found == 0 {
+		return 0, errors.New("invalid register code")
+	}
+	return found, nil
+}
+
+// IsNewuserRegisterCodeTaken reports whether another organization already uses this invite code.
+func IsNewuserRegisterCodeTaken(code string, excludeOwnerId int) bool {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return false
+	}
+	ownerId, err := FindOwnerUserIdByRegisterCode(code)
+	if err != nil {
+		return false
+	}
+	return ownerId != excludeOwnerId
+}
+
+func GenerateUniqueNewuserRegisterCode() string {
+	for i := 0; i < 16; i++ {
+		code := common.GetRandomString(10)
+		if !IsNewuserRegisterCodeTaken(code, 0) {
+			return code
+		}
+	}
+	return common.GetRandomString(16)
+}
+
 func SetNewuserOwnerSettings(ownerUserId int, enabled, registerEnabled bool, registerCode string) error {
+	registerCode = strings.TrimSpace(registerCode)
+	if registerCode != "" && IsNewuserRegisterCodeTaken(registerCode, ownerUserId) {
+		return errors.New("register code already used by another organization")
+	}
 	values := map[string]string{
-		newuserOwnerOptionKey(ownerUserId, "enabled"):           boolToOption(enabled),
-		newuserOwnerOptionKey(ownerUserId, "register_enabled"):  boolToOption(registerEnabled),
-		newuserOwnerOptionKey(ownerUserId, "register_code"):     strings.TrimSpace(registerCode),
+		newuserOwnerOptionKey(ownerUserId, "enabled"):          boolToOption(enabled),
+		newuserOwnerOptionKey(ownerUserId, "register_enabled"): boolToOption(registerEnabled),
+		newuserOwnerOptionKey(ownerUserId, "register_code"):    registerCode,
 	}
 	return UpdateOptionsBulk(values)
+}
+
+func NormalizeNewuserContact(email, phone string) (string, string, error) {
+	email = strings.TrimSpace(email)
+	phone = strings.TrimSpace(phone)
+	if email != "" {
+		email = NormalizeEmail(email)
+		if !strings.Contains(email, "@") {
+			return "", "", errors.New("invalid email")
+		}
+	}
+	if phone != "" {
+		normalized, err := common.NormalizePhone(phone)
+		if err != nil {
+			return "", "", errors.New("invalid phone number")
+		}
+		phone = normalized
+	}
+	return email, phone, nil
+}
+
+func IsNewuserEmailTaken(email string, excludeId int) bool {
+	email = NormalizeEmail(email)
+	if email == "" {
+		return false
+	}
+	var count int64
+	q := DB.Model(&Newuser{}).Where("email = ?", email)
+	if excludeId > 0 {
+		q = q.Where("id <> ?", excludeId)
+	}
+	_ = q.Count(&count).Error
+	return count > 0
+}
+
+func IsNewuserPhoneTaken(phone string, excludeId int) bool {
+	phone = strings.TrimSpace(phone)
+	if phone == "" {
+		return false
+	}
+	var count int64
+	q := DB.Model(&Newuser{}).Where("phone = ?", phone)
+	if excludeId > 0 {
+		q = q.Where("id <> ?", excludeId)
+	}
+	_ = q.Count(&count).Error
+	return count > 0
 }
 
 func boolToOption(v bool) string {
@@ -242,7 +350,7 @@ func (nu *Newuser) Insert() error {
 
 func (nu *Newuser) Update() error {
 	return DB.Model(nu).Select(
-		"display_name", "status", "token_id", "quota_limit", "last_login_time",
+		"display_name", "email", "phone", "status", "token_id", "quota_limit", "last_login_time",
 	).Updates(nu).Error
 }
 
@@ -287,7 +395,7 @@ func ApplyNewuserQuotaLimit(tokenId int, quotaLimit int) error {
 	return token.Update()
 }
 
-func CreateNewuserAccount(ownerUserId int, username, password, displayName string, quotaLimit int) (*Newuser, *Token, error) {
+func CreateNewuserAccount(ownerUserId int, username, password, displayName string, quotaLimit int, email, phone string) (*Newuser, *Token, error) {
 	if err := ValidateNewuserCredentials(username, password); err != nil {
 		return nil, nil, err
 	}
@@ -307,6 +415,16 @@ func CreateNewuserAccount(ownerUserId int, username, password, displayName strin
 	} else if !errors.Is(err, ErrNewuserNotFound) {
 		return nil, nil, err
 	}
+	email, phone, err = NormalizeNewuserContact(email, phone)
+	if err != nil {
+		return nil, nil, err
+	}
+	if email != "" && IsNewuserEmailTaken(email, 0) {
+		return nil, nil, errors.New("email already exists")
+	}
+	if phone != "" && IsNewuserPhoneTaken(phone, 0) {
+		return nil, nil, errors.New("phone already exists")
+	}
 	hashedPassword, err := common.Password2Hash(password)
 	if err != nil {
 		return nil, nil, err
@@ -324,6 +442,8 @@ func CreateNewuserAccount(ownerUserId int, username, password, displayName strin
 		Username:    username,
 		Password:    hashedPassword,
 		DisplayName: displayName,
+		Email:       email,
+		Phone:       phone,
 		Status:      common.UserStatusEnabled,
 		TokenId:     token.Id,
 		QuotaLimit:  quotaLimit,

@@ -91,6 +91,13 @@ const OPERATIONS_SECTIONS = [
           AliyunSmsTemplateCode: settings.AliyunSmsTemplateCode,
           AliyunSmsTemplateParamCodeKey: settings.AliyunSmsTemplateParamCodeKey,
           AliyunSmsEndpoint: settings.AliyunSmsEndpoint,
+          SmsIPMaxRequests: String(settings.SmsIPMaxRequests ?? '2'),
+          SmsIPWindowSeconds: String(settings.SmsIPWindowSeconds ?? '30'),
+          SmsPhoneCooldownSeconds: String(
+            settings.SmsPhoneCooldownSeconds ?? '60'
+          ),
+          SmsPhoneDailyLimit: String(settings.SmsPhoneDailyLimit ?? '10'),
+          SmsIPDailyLimit: String(settings.SmsIPDailyLimit ?? '40'),
         }}
       />
     ),

@@ -1333,12 +1333,17 @@ func SendSmsBindVerification(c *gin.Context) {
 		common.ApiErrorMsg(c, "sms service not configured")
 		return
 	}
+	if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+		common.ApiErrorMsg(c, common.SmsAbuseMessage(err))
+		return
+	}
 	code := common.GenerateNumericVerificationCode(6)
 	common.RegisterVerificationCodeWithKey(phone, code, common.SmsBindPurpose)
 	if err := common.SendAliyunSms(phone, code); err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	common.MarkSmsSent(c.ClientIP(), phone)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

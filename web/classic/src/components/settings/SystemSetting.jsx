@@ -77,6 +77,11 @@ const SystemSetting = () => {
     AliyunSmsTemplateCode: '',
     AliyunSmsTemplateParamCodeKey: '',
     AliyunSmsEndpoint: '',
+    SmsIPMaxRequests: '2',
+    SmsIPWindowSeconds: '30',
+    SmsPhoneCooldownSeconds: '60',
+    SmsPhoneDailyLimit: '10',
+    SmsIPDailyLimit: '40',
     WorkerUrl: '',
     WorkerValidKey: '',
     WorkerAllowHttpImageRequestEnabled: '',
@@ -425,6 +430,17 @@ const SystemSetting = () => {
         value: inputs.AliyunSmsEndpoint,
       });
     }
+    ;[
+      'SmsIPMaxRequests',
+      'SmsIPWindowSeconds',
+      'SmsPhoneCooldownSeconds',
+      'SmsPhoneDailyLimit',
+      'SmsIPDailyLimit',
+    ].forEach((key) => {
+      if (originInputs[key] !== inputs[key] && inputs[key] !== '') {
+        options.push({ key, value: String(inputs[key]) });
+      }
+    });
 
     if (options.length > 0) {
       await updateOptions(options);
@@ -1542,6 +1558,58 @@ const SystemSetting = () => {
                         field='AliyunSmsEndpoint'
                         label={t('Endpoint')}
                         placeholder={t('可选，留空使用默认 Dysmsapi 端点')}
+                      />
+                    </Col>
+                  </Row>
+                  <Row
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                      <Form.Input
+                        field='SmsIPMaxRequests'
+                        label={t('同 IP 短时次数上限')}
+                        placeholder='2'
+                        extraText={t('同一 IP 在时间窗口内最多请求发短信次数')}
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                      <Form.Input
+                        field='SmsIPWindowSeconds'
+                        label={t('同 IP 时间窗口(秒)')}
+                        placeholder='30'
+                      />
+                    </Col>
+                  </Row>
+                  <Row
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                      <Form.Input
+                        field='SmsPhoneCooldownSeconds'
+                        label={t('同手机号冷却(秒)')}
+                        placeholder='60'
+                        extraText={t('同一手机号两次成功发送的最小间隔')}
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                      <Form.Input
+                        field='SmsPhoneDailyLimit'
+                        label={t('同手机号每日上限')}
+                        placeholder='10'
+                      />
+                    </Col>
+                  </Row>
+                  <Row
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                      <Form.Input
+                        field='SmsIPDailyLimit'
+                        label={t('同 IP 每日上限')}
+                        placeholder='40'
                       />
                     </Col>
                   </Row>

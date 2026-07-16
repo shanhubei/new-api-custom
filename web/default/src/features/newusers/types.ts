@@ -21,6 +21,8 @@ export interface NewuserItem {
   owner_user_id: number
   username: string
   display_name: string
+  email?: string
+  phone?: string
   status: number
   token_id: number
   quota_limit: number
@@ -78,11 +80,15 @@ export interface NewuserFormData {
   username: string
   password: string
   display_name: string
+  email?: string
+  phone?: string
   quota_limit: number
 }
 
 export interface NewuserUpdateData {
   display_name?: string
+  email?: string
+  phone?: string
   status?: number
   quota_limit?: number
   password?: string

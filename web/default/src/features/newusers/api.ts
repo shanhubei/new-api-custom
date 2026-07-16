@@ -60,7 +60,7 @@ export async function getNewuserSettings(): Promise<ApiResponse<NewuserSettings>
 
 export async function updateNewuserSettings(
   data: Pick<NewuserSettings, 'enabled' | 'register_enabled' | 'register_code'>
-): Promise<ApiResponse> {
+): Promise<ApiResponse<NewuserSettings>> {
   const res = await api.put('/api/newuser/admin/settings', data)
   return res.data
 }

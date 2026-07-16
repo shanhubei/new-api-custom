@@ -174,6 +174,28 @@ func TestValidateAndFillRejectsPasswordlessUser(t *testing.T) {
 	assert.Empty(t, stored.Password)
 }
 
+func TestValidateAndFillAcceptsPhoneIdentity(t *testing.T) {
+	setupUserUpdateTestState(t)
+
+	hashedPassword, err := common.Password2Hash("PhonePass123")
+	require.NoError(t, err)
+	require.NoError(t, DB.Create(&User{
+		Username: "phone-login-user",
+		Password: hashedPassword,
+		Phone:    "13800138000",
+		AffCode:  "phlogin",
+		Status:   common.UserStatusEnabled,
+	}).Error)
+
+	loginUser := User{
+		Username: "138-0013-8000",
+		Password: "PhonePass123",
+	}
+	require.NoError(t, loginUser.ValidateAndFill())
+	assert.Equal(t, "phone-login-user", loginUser.Username)
+	assert.Equal(t, "13800138000", loginUser.Phone)
+}
+
 func TestResetUserPasswordByEmailRequiresSingleActiveMatch(t *testing.T) {
 	setupUserUpdateTestState(t)
 

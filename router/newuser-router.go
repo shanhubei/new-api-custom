@@ -13,6 +13,7 @@ func SetNewuserRouter(apiRouter *gin.RouterGroup, anonymousRequestBodyLimit gin.
 	{
 		newuserRoute.POST("/login", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.NewuserLogin)
 		newuserRoute.POST("/register", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.NewuserRegister)
+		newuserRoute.GET("/register/info", middleware.CriticalRateLimit(), controller.NewuserRegisterInfo)
 
 		selfRoute := newuserRoute.Group("/")
 		selfRoute.Use(middleware.NewuserAuth())

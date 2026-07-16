@@ -36,7 +36,7 @@ export function NewusersPrimaryButtons({
   return (
     <Button size='sm' disabled={disabled} onClick={() => setOpen('create')}>
       <Plus className='h-4 w-4' />
-      {t('Create Third-Party User')}
+      {t('Create Team User')}
     </Button>
   )
 }

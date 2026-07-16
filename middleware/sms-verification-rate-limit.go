@@ -11,15 +11,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	SmsVerificationRateLimitMark = "SV"
-	SmsVerificationMaxRequests   = 2  // 30秒内最多2次
-	SmsVerificationDuration      = 30 // 30秒时间窗口
-)
+const SmsVerificationRateLimitMark = "SV"
+
+func smsIPMaxRequests() int {
+	if common.SmsIPMaxRequests <= 0 {
+		return 2
+	}
+	return common.SmsIPMaxRequests
+}
+
+func smsIPWindowSeconds() int {
+	if common.SmsIPWindowSeconds <= 0 {
+		return 30
+	}
+	return common.SmsIPWindowSeconds
+}
 
 func redisSmsVerificationRateLimiter(c *gin.Context) {
 	ctx := context.Background()
 	rdb := common.RDB
+	maxReq := smsIPMaxRequests()
+	window := smsIPWindowSeconds()
 	key := "smsVerification:" + SmsVerificationRateLimitMark + ":" + c.ClientIP()
 
 	count, err := rdb.Incr(ctx, key).Result()
@@ -29,16 +41,16 @@ func redisSmsVerificationRateLimiter(c *gin.Context) {
 	}
 
 	if count == 1 {
-		_ = rdb.Expire(ctx, key, time.Duration(SmsVerificationDuration)*time.Second).Err()
+		_ = rdb.Expire(ctx, key, time.Duration(window)*time.Second).Err()
 	}
 
-	if count <= int64(SmsVerificationMaxRequests) {
+	if count <= int64(maxReq) {
 		c.Next()
 		return
 	}
 
 	ttl, err := rdb.TTL(ctx, key).Result()
-	waitSeconds := int64(SmsVerificationDuration)
+	waitSeconds := int64(window)
 	if err == nil && ttl > 0 {
 		waitSeconds = int64(ttl.Seconds())
 	}
@@ -52,8 +64,10 @@ func redisSmsVerificationRateLimiter(c *gin.Context) {
 
 func memorySmsVerificationRateLimiter(c *gin.Context) {
 	key := SmsVerificationRateLimitMark + ":" + c.ClientIP()
+	maxReq := smsIPMaxRequests()
+	window := smsIPWindowSeconds()
 
-	if !inMemoryRateLimiter.Request(key, SmsVerificationMaxRequests, SmsVerificationDuration) {
+	if !inMemoryRateLimiter.Request(key, maxReq, int64(window)) {
 		c.JSON(http.StatusTooManyRequests, gin.H{
 			"success": false,
 			"message": "发送过于频繁，请稍后再试",

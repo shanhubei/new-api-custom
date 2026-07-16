@@ -78,8 +78,8 @@ export function NewusersTable() {
       <Alert variant={moduleDisabled ? 'destructive' : 'default'}>
         <AlertTitle>
           {moduleDisabled
-            ? t('Third-party user module unavailable')
-            : t('Failed to load third-party users')}
+            ? t('Team user module unavailable')
+            : t('Failed to load team users')}
         </AlertTitle>
         <AlertDescription>
           {moduleDisabled
@@ -110,10 +110,10 @@ export function NewusersTable() {
             <EmptyMedia variant='icon'>
               <Users className='size-6' />
             </EmptyMedia>
-            <EmptyTitle>{t('No Third-Party Users Yet')}</EmptyTitle>
+            <EmptyTitle>{t('No Team Users Yet')}</EmptyTitle>
             <EmptyDescription>
               {t(
-                'Create a third-party user to issue dedicated API access for your external UI.'
+                'Create a team user to issue dedicated API access for your external UI.'
               )}
             </EmptyDescription>
           </EmptyHeader>
@@ -129,6 +129,8 @@ export function NewusersTable() {
           <TableRow>
             <TableHead>{t('Username')}</TableHead>
             <TableHead>{t('Display Name')}</TableHead>
+            <TableHead>{t('Email')}</TableHead>
+            <TableHead>{t('Phone')}</TableHead>
             <TableHead>{t('Status')}</TableHead>
             <TableHead>{t('Used Quota')}</TableHead>
             <TableHead>{t('Quota Limit')}</TableHead>
@@ -144,6 +146,12 @@ export function NewusersTable() {
             >
               <TableCell className='font-medium'>{user.username}</TableCell>
               <TableCell>{user.display_name || user.username}</TableCell>
+              <TableCell className='text-muted-foreground text-sm'>
+                {user.email || '—'}
+              </TableCell>
+              <TableCell className='text-muted-foreground text-sm'>
+                {user.phone || '—'}
+              </TableCell>
               <TableCell>
                 <StatusBadge
                   label={

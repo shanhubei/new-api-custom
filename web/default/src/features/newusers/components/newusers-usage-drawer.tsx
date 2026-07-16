@@ -76,7 +76,7 @@ export function NewusersUsageDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className={sideDrawerContentClassName}>
         <SheetHeader className={sideDrawerHeaderClassName}>
-          <SheetTitle>{t('Third-Party User Usage')}</SheetTitle>
+          <SheetTitle>{t('Team User Usage')}</SheetTitle>
           <SheetDescription>
             {currentRow
               ? t('Usage statistics for {{username}}', {
