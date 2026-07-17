@@ -2,11 +2,13 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -20,14 +22,15 @@ type newuserLoginRequest struct {
 }
 
 type newuserRegisterRequest struct {
-	Username     string `json:"username"`
-	Password     string `json:"password"`
-	DisplayName  string `json:"display_name"`
-	Email        string `json:"email"`
-	Phone        string `json:"phone"`
-	OwnerUserId  int    `json:"owner_user_id"`
-	RegisterCode string `json:"register_code"`
-	RegisterType string `json:"register_type"`
+	Username         string `json:"username"`
+	Password         string `json:"password"`
+	DisplayName      string `json:"display_name"`
+	Email            string `json:"email"`
+	Phone            string `json:"phone"`
+	VerificationCode string `json:"verification_code"`
+	OwnerUserId      int    `json:"owner_user_id"`
+	RegisterCode     string `json:"register_code"`
+	RegisterType     string `json:"register_type"`
 }
 
 type newuserAdminCreateRequest struct {
@@ -63,6 +66,35 @@ func newuserOwnerInfo(ownerUserId int) gin.H {
 		"owner_quota":        brief.Quota,
 		"owner_used_quota":   brief.UsedQuota,
 	}
+}
+
+// verifyNewuserRegisterContact validates optional email/phone verification codes.
+// When both email and SMS verification are enabled, pass only one contact channel.
+func verifyNewuserRegisterContact(email, phone, verificationCode string) error {
+	email = strings.TrimSpace(email)
+	phone = strings.TrimSpace(phone)
+	needEmail := email != "" && common.EmailVerificationEnabled
+	needSms := phone != "" && common.SmsVerificationEnabled
+	if needEmail && needSms {
+		return errors.New("provide either email or phone with verification_code, not both")
+	}
+	if needEmail {
+		email = model.NormalizeEmail(email)
+		if verificationCode == "" || !common.VerifyCodeWithKey(email, verificationCode, common.EmailVerificationPurpose) {
+			return errors.New("invalid verification code")
+		}
+		return nil
+	}
+	if needSms {
+		normalized, err := common.NormalizePhone(phone)
+		if err != nil {
+			return errors.New("invalid phone number")
+		}
+		if verificationCode == "" || !common.VerifyCodeWithKey(normalized, verificationCode, common.SmsRegisterPurpose) {
+			return errors.New("invalid verification code")
+		}
+	}
+	return nil
 }
 
 func newuserAdminOwnerId(c *gin.Context) int {
@@ -189,6 +221,10 @@ func NewuserRegister(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid register code"})
 			return
 		}
+		if err = verifyNewuserRegisterContact(req.Email, req.Phone, req.VerificationCode); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+			return
+		}
 		nu, token, err = model.CreateNewuserAccount(ownerId, req.Username, req.Password, req.DisplayName, 0, req.Email, req.Phone)
 	}
 
@@ -269,6 +305,58 @@ func NewuserGetSelf(c *gin.Context) {
 		"message": "",
 		"data":    data,
 	})
+}
+
+type newuserChangePasswordRequest struct {
+	OriginalPassword string `json:"original_password"`
+	Password         string `json:"password"`
+}
+
+// NewuserChangePassword lets a logged-in team user change their own password (JWT).
+// If the account is is_org_owner, also syncs the password to the mirrored users row.
+func NewuserChangePassword(c *gin.Context) {
+	nu := c.MustGet("newuser").(*model.Newuser)
+	var req newuserChangePasswordRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
+		return
+	}
+	if req.OriginalPassword == "" || req.Password == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "original_password and password are required"})
+		return
+	}
+	if len(req.Password) < model.NewuserPasswordMinLength || len(req.Password) > model.NewuserPasswordMaxLength {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "password length invalid"})
+		return
+	}
+	if req.OriginalPassword == req.Password {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "new password must be different from current password"})
+		return
+	}
+	fresh, err := model.GetNewuserById(nu.Id)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "user not found"})
+		return
+	}
+	if fresh.Password == "" || !common.ValidatePasswordAndHash(req.OriginalPassword, fresh.Password) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "original password error"})
+		return
+	}
+	hashed, err := common.Password2Hash(req.Password)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := fresh.UpdatePassword(hashed); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if fresh.IsOrgOwner {
+		if syncErr := model.SyncMainUserPasswordFromOrgOwner(fresh.OwnerUserId, hashed); syncErr != nil {
+			common.SysError(fmt.Sprintf("sync main user password from org-owner newuser %d: %v", fresh.Id, syncErr))
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 }
 
 func NewuserGetToken(c *gin.Context) {
@@ -578,5 +666,169 @@ func NewuserAdminUpdateSettings(c *gin.Context) {
 			"register_code":    registerCode,
 			"owner_user_id":    ownerId,
 		},
+	})
+}
+
+func newuserSmsPasswordResetEnabled() bool {
+	return common.SmsLoginEnabled || common.SmsVerificationEnabled
+}
+
+// NewuserSendPasswordResetEmail sends a short code (desktop-friendly, not a web link).
+// By default anti-enumeration (always success). Pass require_exists=1 to fail when unbound.
+func NewuserSendPasswordResetEmail(c *gin.Context) {
+	email := model.NormalizeEmail(c.Query("email"))
+	if email == "" || !strings.Contains(email, "@") {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid email"})
+		return
+	}
+	requireExists := newuserRequireExists(c)
+	nu, err := model.GetEnabledNewuserByEmail(email)
+	if err != nil || nu == nil {
+		if requireExists {
+			msg := "该邮箱未绑定团队账号"
+			if err != nil && !errors.Is(err, model.ErrNewuserEmailNotFound) {
+				msg = "该邮箱无法用于找回密码，请联系管理员"
+			}
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
+			return
+		}
+		if err != nil && !errors.Is(err, model.ErrNewuserEmailNotFound) {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip newuser password reset email for %s: %s", email, err.Error()))
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	}
+	code := common.GenerateVerificationCode(6)
+	common.RegisterVerificationCodeWithKey(email, code, common.NewuserPasswordResetPurpose)
+	subject := fmt.Sprintf("%s团队账号密码重置", common.SystemName)
+	content := fmt.Sprintf("<p>您好，你正在进行%s团队账号密码重置。</p>"+
+		"<p>您的验证码为: <strong>%s</strong></p>"+
+		"<p>验证码 %d 分钟内有效，如果不是本人操作，请忽略。</p>",
+		common.SystemName, code, common.VerificationValidMinutes)
+	if sendErr := common.SendEmail(subject, email, content); sendErr != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send newuser password reset email to %s: %s", email, sendErr.Error()))
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
+func newuserRequireExists(c *gin.Context) bool {
+	v := strings.TrimSpace(c.Query("require_exists"))
+	return v == "1" || strings.EqualFold(v, "true")
+}
+
+// NewuserSendPasswordResetSms sends SMS reset code for team users.
+// By default anti-enumeration. Pass require_exists=1 to fail when unbound.
+func NewuserSendPasswordResetSms(c *gin.Context) {
+	if !newuserSmsPasswordResetEnabled() {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "sms password reset disabled"})
+		return
+	}
+	phone, err := common.NormalizePhone(c.Query("phone"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid phone number"})
+		return
+	}
+	requireExists := newuserRequireExists(c)
+	nu, lookupErr := model.GetEnabledNewuserByPhone(phone)
+	if lookupErr != nil || nu == nil {
+		if requireExists {
+			msg := "该手机号未绑定团队账号"
+			if lookupErr != nil && !errors.Is(lookupErr, model.ErrNewuserPhoneNotFound) {
+				msg = "该手机号无法用于找回密码，请联系管理员"
+			}
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
+			return
+		}
+		if lookupErr != nil && !errors.Is(lookupErr, model.ErrNewuserPhoneNotFound) {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip newuser sms password reset for %s: %s", common.MaskPhone(phone), lookupErr.Error()))
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	}
+	if nu.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
+		if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("newuser sms password reset blocked by abuse guard for %s: %s", common.MaskPhone(phone), err.Error()))
+		} else {
+			code := common.GenerateNumericVerificationCode(6)
+			common.RegisterVerificationCodeWithKey(phone, code, common.NewuserSmsPasswordResetPurpose)
+			if err := common.SendAliyunSms(phone, code); err != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send newuser sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
+			} else {
+				common.MarkSmsSent(c.ClientIP(), phone)
+			}
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
+type newuserResetPasswordRequest struct {
+	Email            string `json:"email"`
+	Phone            string `json:"phone"`
+	VerificationCode string `json:"verification_code"`
+}
+
+// NewuserResetPassword resets team user password by email + verification code.
+// Returns a newly generated password (desktop-friendly).
+func NewuserResetPassword(c *gin.Context) {
+	var req newuserResetPasswordRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
+		return
+	}
+	email := model.NormalizeEmail(req.Email)
+	if email == "" || req.VerificationCode == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
+		return
+	}
+	if !common.VerifyCodeWithKey(email, req.VerificationCode, common.NewuserPasswordResetPurpose) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "email or verification code error"})
+		return
+	}
+	password := common.GenerateVerificationCode(12)
+	if err := model.ResetNewuserPasswordByEmail(email, password); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "email or verification code error"})
+		return
+	}
+	common.DeleteKey(email, common.NewuserPasswordResetPurpose)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    password,
+	})
+}
+
+// NewuserResetPasswordBySms resets team user password by phone + SMS code.
+func NewuserResetPasswordBySms(c *gin.Context) {
+	if !newuserSmsPasswordResetEnabled() {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "sms password reset disabled"})
+		return
+	}
+	var req newuserResetPasswordRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
+		return
+	}
+	phone, err := common.NormalizePhone(req.Phone)
+	if err != nil || req.VerificationCode == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid parameters"})
+		return
+	}
+	fail := func() {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "phone or verification code error"})
+	}
+	if !common.VerifyCodeWithKey(phone, req.VerificationCode, common.NewuserSmsPasswordResetPurpose) {
+		fail()
+		return
+	}
+	password := common.GenerateVerificationCode(12)
+	if err := model.ResetNewuserPasswordByPhone(phone, password); err != nil {
+		fail()
+		return
+	}
+	common.DeleteKey(phone, common.NewuserSmsPasswordResetPurpose)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    password,
 	})
 }

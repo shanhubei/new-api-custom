@@ -14,11 +14,16 @@ func SetNewuserRouter(apiRouter *gin.RouterGroup, anonymousRequestBodyLimit gin.
 		newuserRoute.POST("/login", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.NewuserLogin)
 		newuserRoute.POST("/register", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.NewuserRegister)
 		newuserRoute.GET("/register/info", middleware.CriticalRateLimit(), controller.NewuserRegisterInfo)
+		newuserRoute.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.NewuserSendPasswordResetEmail)
+		newuserRoute.GET("/reset_password/sms", middleware.SmsVerificationRateLimit(), middleware.TurnstileCheck(), controller.NewuserSendPasswordResetSms)
+		newuserRoute.POST("/reset", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.NewuserResetPassword)
+		newuserRoute.POST("/reset/sms", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, middleware.TurnstileCheck(), controller.NewuserResetPasswordBySms)
 
 		selfRoute := newuserRoute.Group("/")
 		selfRoute.Use(middleware.NewuserAuth())
 		{
 			selfRoute.GET("/self", controller.NewuserGetSelf)
+			selfRoute.PUT("/self/password", middleware.CriticalRateLimit(), controller.NewuserChangePassword)
 			selfRoute.GET("/token", controller.NewuserGetToken)
 			selfRoute.GET("/usage", controller.NewuserGetUsage)
 		}

@@ -221,6 +221,76 @@ func IsNewuserPhoneTaken(phone string, excludeId int) bool {
 	return count > 0
 }
 
+var (
+	ErrNewuserEmailNotFound = errors.New("newuser email not found")
+	ErrNewuserPhoneNotFound = errors.New("newuser phone not found")
+	ErrNewuserContactAmbiguous = errors.New("newuser contact matches multiple accounts")
+)
+
+// GetEnabledNewuserByEmail returns the single enabled team user with this email.
+func GetEnabledNewuserByEmail(email string) (*Newuser, error) {
+	email = NormalizeEmail(email)
+	if email == "" {
+		return nil, ErrNewuserEmailNotFound
+	}
+	var users []*Newuser
+	err := DB.Where("email = ? AND status = ?", email, common.UserStatusEnabled).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, ErrNewuserEmailNotFound
+	}
+	if len(users) > 1 {
+		return nil, ErrNewuserContactAmbiguous
+	}
+	return users[0], nil
+}
+
+// GetEnabledNewuserByPhone returns the single enabled team user with this phone.
+func GetEnabledNewuserByPhone(phone string) (*Newuser, error) {
+	phone = strings.TrimSpace(phone)
+	if phone == "" {
+		return nil, ErrNewuserPhoneNotFound
+	}
+	var users []*Newuser
+	err := DB.Where("phone = ? AND status = ?", phone, common.UserStatusEnabled).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, ErrNewuserPhoneNotFound
+	}
+	if len(users) > 1 {
+		return nil, ErrNewuserContactAmbiguous
+	}
+	return users[0], nil
+}
+
+func ResetNewuserPasswordByEmail(email, plainPassword string) error {
+	nu, err := GetEnabledNewuserByEmail(email)
+	if err != nil {
+		return err
+	}
+	hashed, err := common.Password2Hash(plainPassword)
+	if err != nil {
+		return err
+	}
+	return nu.UpdatePassword(hashed)
+}
+
+func ResetNewuserPasswordByPhone(phone, plainPassword string) error {
+	nu, err := GetEnabledNewuserByPhone(phone)
+	if err != nil {
+		return err
+	}
+	hashed, err := common.Password2Hash(plainPassword)
+	if err != nil {
+		return err
+	}
+	return nu.UpdatePassword(hashed)
+}
+
 func boolToOption(v bool) string {
 	if v {
 		return "true"
@@ -356,6 +426,44 @@ func (nu *Newuser) Update() error {
 
 func (nu *Newuser) UpdatePassword(hashedPassword string) error {
 	return DB.Model(nu).Update("password", hashedPassword).Error
+}
+
+// SyncOrgOwnerNewuserPassword updates the org-owner newuser row that mirrors a main User account.
+// hashedPassword must already be bcrypt-hashed (same as users.password).
+func SyncOrgOwnerNewuserPassword(ownerUserId int, hashedPassword string) error {
+	if ownerUserId <= 0 || hashedPassword == "" {
+		return nil
+	}
+	return DB.Model(&Newuser{}).
+		Where("owner_user_id = ? AND is_org_owner = ?", ownerUserId, true).
+		Update("password", hashedPassword).Error
+}
+
+// SyncMainUserPasswordFromOrgOwner updates the main users.password when org-owner newuser changes password.
+func SyncMainUserPasswordFromOrgOwner(ownerUserId int, hashedPassword string) error {
+	if ownerUserId <= 0 || hashedPassword == "" {
+		return nil
+	}
+	if err := DB.Model(&User{}).Where("id = ?", ownerUserId).Update("password", hashedPassword).Error; err != nil {
+		return err
+	}
+	return InvalidateUserCache(ownerUserId)
+}
+
+// GetOrgOwnerNewuserByOwnerUserId returns the is_org_owner newuser for a main account, if any.
+func GetOrgOwnerNewuserByOwnerUserId(ownerUserId int) (*Newuser, error) {
+	if ownerUserId <= 0 {
+		return nil, ErrNewuserNotFound
+	}
+	nu := &Newuser{}
+	err := DB.Where("owner_user_id = ? AND is_org_owner = ?", ownerUserId, true).First(nu).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNewuserNotFound
+		}
+		return nil, err
+	}
+	return nu, nil
 }
 
 func (nu *Newuser) TouchLastLogin() error {

@@ -278,7 +278,7 @@ func SendEmailVerification(c *gin.Context) {
 		}
 	}
 
-	if model.IsEmailAlreadyTaken(email) {
+	if model.IsEmailAlreadyTaken(email) || model.IsNewuserEmailTaken(email, 0) {
 		common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
 		return
 	}
@@ -310,7 +310,7 @@ func SendSmsVerification(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	if model.IsPhoneAlreadyTaken(phone) {
+	if model.IsPhoneAlreadyTaken(phone) || model.IsNewuserPhoneTaken(phone, 0) {
 		common.ApiErrorI18n(c, i18n.MsgUserPhoneAlreadyTaken)
 		return
 	}
@@ -369,27 +369,44 @@ func SendSmsLoginVerification(c *gin.Context) {
 	})
 }
 
+func passwordResetRequireExists(c *gin.Context) bool {
+	v := strings.TrimSpace(c.Query("require_exists"))
+	return v == "1" || strings.EqualFold(v, "true")
+}
+
 func SendPasswordResetEmail(c *gin.Context) {
 	email := model.NormalizeEmail(c.Query("email"))
 	if err := common.Validate.Var(email, "required,email"); err != nil {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	if _, err := model.GetUniqueUserByEmail(email); err == nil {
-		code := common.GenerateVerificationCode(0)
-		common.RegisterVerificationCodeWithKey(email, code, common.PasswordResetPurpose)
-		link := fmt.Sprintf("%s/user/reset?email=%s&token=%s", system_setting.ServerAddress, email, code)
-		subject := fmt.Sprintf("%s密码重置", common.SystemName)
-		content := fmt.Sprintf("<p>您好，你正在进行%s密码重置。</p>"+
-			"<p>点击 <a href='%s'>此处</a> 进行密码重置。</p>"+
-			"<p>如果链接无法点击，请尝试点击下面的链接或将其复制到浏览器中打开：<br> %s </p>"+
-			"<p>重置链接 %d 分钟内有效，如果不是本人操作，请忽略。</p>", common.SystemName, link, link, common.VerificationValidMinutes)
-		err := common.SendEmail(subject, email, content)
-		if err != nil {
-			logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send password reset email to %s: %s", email, err.Error()))
+	requireExists := passwordResetRequireExists(c)
+	_, err := model.GetUniqueUserByEmail(email)
+	if err != nil {
+		if requireExists {
+			msg := "该邮箱未绑定主账号"
+			if !errors.Is(err, model.ErrEmailNotFound) {
+				msg = "该邮箱无法用于找回密码，请联系管理员"
+			}
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
+			return
 		}
-	} else if err != nil && !errors.Is(err, model.ErrEmailNotFound) {
-		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip password reset email for %s: %s", email, err.Error()))
+		if !errors.Is(err, model.ErrEmailNotFound) {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip password reset email for %s: %s", email, err.Error()))
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	}
+	code := common.GenerateVerificationCode(0)
+	common.RegisterVerificationCodeWithKey(email, code, common.PasswordResetPurpose)
+	link := fmt.Sprintf("%s/user/reset?email=%s&token=%s", system_setting.ServerAddress, email, code)
+	subject := fmt.Sprintf("%s密码重置", common.SystemName)
+	content := fmt.Sprintf("<p>您好，你正在进行%s密码重置。</p>"+
+		"<p>点击 <a href='%s'>此处</a> 进行密码重置。</p>"+
+		"<p>如果链接无法点击，请尝试点击下面的链接或将其复制到浏览器中打开：<br> %s </p>"+
+		"<p>重置链接 %d 分钟内有效，如果不是本人操作，请忽略。</p>", common.SystemName, link, link, common.VerificationValidMinutes)
+	if sendErr := common.SendEmail(subject, email, content); sendErr != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send password reset email to %s: %s", email, sendErr.Error()))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -411,23 +428,40 @@ func SendPasswordResetSms(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	// Anti-enumeration: always succeed; only send when a unique enabled user exists.
-	if user, err := model.GetUniqueUserByPhone(phone); err == nil {
-		if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
-			if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
-				logger.LogWarn(c.Request.Context(), fmt.Sprintf("sms password reset blocked by abuse guard for %s: %s", common.MaskPhone(phone), err.Error()))
+	requireExists := passwordResetRequireExists(c)
+	user, lookupErr := model.GetUniqueUserByPhone(phone)
+	if lookupErr != nil {
+		if requireExists {
+			msg := "该手机号未绑定主账号"
+			if !errors.Is(lookupErr, model.ErrPhoneNotFound) {
+				msg = "该手机号无法用于找回密码，请联系管理员"
+			}
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
+			return
+		}
+		if !errors.Is(lookupErr, model.ErrPhoneNotFound) {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms password reset for %s: %s", common.MaskPhone(phone), lookupErr.Error()))
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	}
+	if requireExists && user.Status != common.UserStatusEnabled {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "该手机号未绑定可用主账号"})
+		return
+	}
+	// Anti-enumeration default: only send when a unique enabled user exists.
+	if user.Status == common.UserStatusEnabled && common.AliyunSmsConfigured() {
+		if err := common.AllowSmsSend(c.ClientIP(), phone); err != nil {
+			logger.LogWarn(c.Request.Context(), fmt.Sprintf("sms password reset blocked by abuse guard for %s: %s", common.MaskPhone(phone), err.Error()))
+		} else {
+			code := common.GenerateNumericVerificationCode(6)
+			common.RegisterVerificationCodeWithKey(phone, code, common.SmsPasswordResetPurpose)
+			if err := common.SendAliyunSms(phone, code); err != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
 			} else {
-				code := common.GenerateNumericVerificationCode(6)
-				common.RegisterVerificationCodeWithKey(phone, code, common.SmsPasswordResetPurpose)
-				if err := common.SendAliyunSms(phone, code); err != nil {
-					logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send sms password reset to %s: %s", common.MaskPhone(phone), err.Error()))
-				} else {
-					common.MarkSmsSent(c.ClientIP(), phone)
-				}
+				common.MarkSmsSent(c.ClientIP(), phone)
 			}
 		}
-	} else if err != nil && !errors.Is(err, model.ErrPhoneNotFound) {
-		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip sms password reset for %s: %s", common.MaskPhone(phone), err.Error()))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

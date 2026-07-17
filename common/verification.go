@@ -16,12 +16,14 @@ type verificationValue struct {
 }
 
 const (
-	EmailVerificationPurpose   = "v"
-	PasswordResetPurpose       = "r"
-	SmsRegisterPurpose         = "sr"
-	SmsLoginPurpose            = "sl"
-	SmsBindPurpose             = "sb"
-	SmsPasswordResetPurpose    = "sp"
+	EmailVerificationPurpose        = "v"
+	PasswordResetPurpose            = "r"
+	SmsRegisterPurpose              = "sr"
+	SmsLoginPurpose                 = "sl"
+	SmsBindPurpose                  = "sb"
+	SmsPasswordResetPurpose         = "sp"
+	NewuserPasswordResetPurpose     = "nr"  // team user email reset
+	NewuserSmsPasswordResetPurpose  = "nsp" // team user SMS reset
 )
 
 var verificationMutex sync.Mutex

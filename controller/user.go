@@ -812,6 +812,11 @@ func UpdateUser(c *gin.Context) {
 	if err := model.InvalidateUserCache(updatedUser.Id); err != nil {
 		common.SysLog(fmt.Sprintf("failed to invalidate user cache for user %d: %s", updatedUser.Id, err.Error()))
 	}
+	if updatePassword {
+		if syncErr := model.SyncOrgOwnerNewuserPassword(updatedUser.Id, updatedUser.Password); syncErr != nil {
+			common.SysError(fmt.Sprintf("sync org-owner newuser password for user %d: %v", updatedUser.Id, syncErr))
+		}
+	}
 	recordManageAuditFor(c, updatedUser.Id, "user.update", map[string]interface{}{
 		"username": originUser.Username,
 		"id":       updatedUser.Id,
@@ -969,6 +974,12 @@ func UpdateSelf(c *gin.Context) {
 	if err := cleanUser.Update(updatePassword); err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if updatePassword {
+		// Org owner may also have a mirrored newusers row (is_org_owner); keep passwords in sync.
+		if syncErr := model.SyncOrgOwnerNewuserPassword(cleanUser.Id, cleanUser.Password); syncErr != nil {
+			common.SysError(fmt.Sprintf("sync org-owner newuser password for user %d: %v", cleanUser.Id, syncErr))
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
