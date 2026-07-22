@@ -33,10 +33,11 @@ type AliVideoRequest struct {
 	Parameters *AliVideoParameters `json:"parameters,omitempty"`
 }
 
-// AliVideoMedia describes Wan2.7 image-to-video media inputs.
+// AliVideoMedia describes Wan2.7 multimodal media inputs (i2v / r2v / videoedit).
 type AliVideoMedia struct {
-	Type string `json:"type"`
-	URL  string `json:"url"`
+	Type           string `json:"type"`
+	URL            string `json:"url"`
+	ReferenceVoice string `json:"reference_voice,omitempty"` // r2v：角色音色
 }
 
 // AliVideoInput 视频输入参数
@@ -55,10 +56,12 @@ type AliVideoInput struct {
 type AliVideoParameters struct {
 	Resolution   string `json:"resolution,omitempty"`    // 分辨率: 480P/720P/1080P（图生视频、首尾帧生视频）
 	Size         string `json:"size,omitempty"`          // 尺寸: 如 "832*480"（文生视频）
-	Duration     int    `json:"duration,omitempty"`      // 时长: 3-10秒
+	Ratio        string `json:"ratio,omitempty"`         // 宽高比: 16:9 等（wan2.7）
+	Duration     int    `json:"duration,omitempty"`      // 时长；videoedit 为 0 表示跟原片
 	PromptExtend bool   `json:"prompt_extend,omitempty"` // 是否开启prompt智能改写
 	Watermark    bool   `json:"watermark,omitempty"`     // 是否添加水印
 	Audio        *bool  `json:"audio,omitempty"`         // 是否添加音频（wan2.5）
+	AudioSetting string `json:"audio_setting,omitempty"` // videoedit: auto / origin
 	Seed         int    `json:"seed,omitempty"`          // 随机数种子
 }
 
@@ -85,11 +88,14 @@ type AliVideoOutput struct {
 	Message       string `json:"message,omitempty"`
 }
 
-// AliUsage 使用统计
+// AliUsage 使用统计（videoedit/r2v 的 duration 为计费总秒数 = 输入+输出）
 type AliUsage struct {
-	Duration   dto.IntValue `json:"duration,omitempty"`
-	VideoCount dto.IntValue `json:"video_count,omitempty"`
-	SR         dto.IntValue `json:"SR,omitempty"`
+	Duration            float64      `json:"duration,omitempty"`
+	InputVideoDuration  float64      `json:"input_video_duration,omitempty"`
+	OutputVideoDuration float64      `json:"output_video_duration,omitempty"`
+	VideoCount          dto.IntValue `json:"video_count,omitempty"`
+	SR                  dto.IntValue `json:"SR,omitempty"`
+	Ratio               string       `json:"ratio,omitempty"`
 }
 
 type AliMetadata struct {
@@ -264,6 +270,18 @@ func isWan27I2VModel(model string) bool {
 	return strings.HasPrefix(model, "wan2.7-i2v")
 }
 
+func isWan27VideoEditModel(model string) bool {
+	return strings.HasPrefix(model, "wan2.7-videoedit")
+}
+
+func isWan27R2VModel(model string) bool {
+	return strings.HasPrefix(model, "wan2.7-r2v")
+}
+
+func isWan27InputVideoBillingModel(model string) bool {
+	return isWan27VideoEditModel(model) || isWan27R2VModel(model)
+}
+
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)
@@ -347,6 +365,93 @@ func normalizeWan27I2VInput(aliReq *AliVideoRequest, req relaycommon.TaskSubmitR
 	return nil
 }
 
+func normalizeWan27VideoEditInput(aliReq *AliVideoRequest) error {
+	if !isWan27VideoEditModel(aliReq.Model) {
+		return nil
+	}
+
+	videoCount := 0
+	refImageCount := 0
+	for _, media := range aliReq.Input.Media {
+		switch strings.TrimSpace(media.Type) {
+		case "video":
+			if strings.TrimSpace(media.URL) == "" {
+				return fmt.Errorf("wan2.7-videoedit media video url is required")
+			}
+			videoCount++
+		case "reference_image":
+			if strings.TrimSpace(media.URL) == "" {
+				return fmt.Errorf("wan2.7-videoedit media reference_image url is required")
+			}
+			refImageCount++
+		default:
+			return fmt.Errorf("wan2.7-videoedit unsupported media type: %s", media.Type)
+		}
+	}
+	if videoCount != 1 {
+		return fmt.Errorf("wan2.7-videoedit requires exactly one media with type=video")
+	}
+	if refImageCount > 4 {
+		return fmt.Errorf("wan2.7-videoedit allows at most 4 reference_image items")
+	}
+
+	aliReq.Input.ImgURL = ""
+	aliReq.Input.FirstFrameURL = ""
+	aliReq.Input.LastFrameURL = ""
+	aliReq.Input.AudioURL = ""
+	return nil
+}
+
+func normalizeWan27R2VInput(aliReq *AliVideoRequest) error {
+	if !isWan27R2VModel(aliReq.Model) {
+		return nil
+	}
+
+	refCount := 0
+	firstFrameCount := 0
+	refVideoCount := 0
+	for _, media := range aliReq.Input.Media {
+		switch strings.TrimSpace(media.Type) {
+		case "reference_image":
+			if strings.TrimSpace(media.URL) == "" {
+				return fmt.Errorf("wan2.7-r2v media reference_image url is required")
+			}
+			refCount++
+		case "reference_video":
+			if strings.TrimSpace(media.URL) == "" {
+				return fmt.Errorf("wan2.7-r2v media reference_video url is required")
+			}
+			refCount++
+			refVideoCount++
+		case "first_frame":
+			if strings.TrimSpace(media.URL) == "" {
+				return fmt.Errorf("wan2.7-r2v media first_frame url is required")
+			}
+			firstFrameCount++
+		default:
+			return fmt.Errorf("wan2.7-r2v unsupported media type: %s", media.Type)
+		}
+	}
+	if refCount == 0 {
+		return fmt.Errorf("wan2.7-r2v requires at least one reference_image or reference_video in input.media")
+	}
+	if refCount > 5 {
+		return fmt.Errorf("wan2.7-r2v allows at most 5 reference_image+reference_video items")
+	}
+	if refVideoCount > 3 {
+		return fmt.Errorf("wan2.7-r2v allows at most 3 reference_video items")
+	}
+	if firstFrameCount > 1 {
+		return fmt.Errorf("wan2.7-r2v allows at most one first_frame")
+	}
+
+	aliReq.Input.ImgURL = ""
+	aliReq.Input.FirstFrameURL = ""
+	aliReq.Input.LastFrameURL = ""
+	aliReq.Input.AudioURL = ""
+	return nil
+}
+
 func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relaycommon.TaskSubmitReq) (*AliVideoRequest, error) {
 	upstreamModel := req.Model
 	if info.IsModelMapped {
@@ -417,7 +522,10 @@ func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relay
 		}
 	}
 	if aliReq.Parameters.Duration <= 0 {
-		aliReq.Parameters.Duration = 5 // 默认5秒
+		// videoedit: 0 means keep source length; omitempty will drop the field.
+		if !isWan27VideoEditModel(aliReq.Model) {
+			aliReq.Parameters.Duration = 5 // 默认5秒
+		}
 	}
 
 	// 从 metadata 中提取额外参数
@@ -436,7 +544,18 @@ func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relay
 		return nil, errors.New("can't change model with metadata")
 	}
 
+	// metadata 可能整体替换 parameters；非 videoedit 仍保证正时长默认值。
+	if aliReq.Parameters.Duration <= 0 && !isWan27VideoEditModel(aliReq.Model) {
+		aliReq.Parameters.Duration = 5
+	}
+
 	if err := normalizeWan27I2VInput(aliReq, req); err != nil {
+		return nil, err
+	}
+	if err := normalizeWan27VideoEditInput(aliReq); err != nil {
+		return nil, err
+	}
+	if err := normalizeWan27R2VInput(aliReq); err != nil {
 		return nil, err
 	}
 
@@ -459,7 +578,7 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 	// metadata can override Duration past standard request validation;
 	// cap it because it is used as a billing multiplier.
 	otherRatios := map[string]float64{
-		"seconds": float64(min(aliReq.Parameters.Duration, relaycommon.MaxTaskDurationSeconds)),
+		"seconds": float64(estimateBillableSeconds(aliReq)),
 	}
 	ratios, err := ProcessAliOtherRatios(aliReq)
 	if err != nil {
