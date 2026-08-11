@@ -34,7 +34,8 @@ var defaultVendorRules = map[string]string{
 	"doubao":   "字节跳动",
 	"kling":    "快手",
 	"jimeng":   "即梦",
-	"vidu":     "Vidu",
+	"vidu":           "Vidu",
+	"baidu_vod_vidu": "Baidu VOD Vidu",
 }
 
 // 供应商默认图标映射
@@ -61,10 +62,11 @@ var defaultVendorIcons = map[string]string{
 	"字节跳动":       "Doubao.Color",
 	"快手":         "Kling.Color",
 	"即梦":         "Jimeng.Color",
-	"Vidu":       "Vidu",
-	"微软":         "AzureAI",
-	"Microsoft":  "AzureAI",
-	"Azure":      "AzureAI",
+	"Vidu":           "Vidu",
+	"Baidu VOD Vidu": "Baidu",
+	"微软":             "AzureAI",
+	"Microsoft":      "AzureAI",
+	"Azure":          "AzureAI",
 }
 
 // initDefaultVendorMapping 简化的默认供应商映射
