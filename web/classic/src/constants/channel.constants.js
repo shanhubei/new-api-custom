@@ -165,6 +165,11 @@ export const CHANNEL_OPTIONS = [
     label: 'Vidu',
   },
   {
+    value: 59,
+    color: 'blue',
+    label: 'Baidu VOD Vidu',
+  },
+  {
     value: 53,
     color: 'blue',
     label: 'SubModel',
