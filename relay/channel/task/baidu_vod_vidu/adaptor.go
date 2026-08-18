@@ -42,6 +42,22 @@ type requestPayload struct {
 	OffPeak           *bool    `json:"off_peak,omitempty"`
 }
 
+type imageRequestPayload struct {
+	Model       string   `json:"model"`
+	Images      []string `json:"images,omitempty"`
+	Prompt      string   `json:"prompt"`
+	Seed        *int     `json:"seed,omitempty"`
+	AspectRatio *string  `json:"aspect_ratio,omitempty"`
+	Resolution  *string  `json:"resolution,omitempty"`
+	Payload     *string  `json:"payload,omitempty"`
+	CallbackUrl *string  `json:"callback_url,omitempty"`
+	Moderation  *string  `json:"moderation,omitempty"`
+	Audio       *bool    `json:"audio,omitempty"`
+	OffPeak     *bool    `json:"off_peak,omitempty"`
+}
+
+const maxReferenceImages = 7
+
 type responsePayload struct {
 	TaskId            string   `json:"task_id"`
 	State             string   `json:"state"`
@@ -94,6 +110,20 @@ func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycom
 	if err != nil {
 		return service.TaskErrorWrapper(err, "get_task_request_failed", http.StatusBadRequest)
 	}
+	if isAsyncImagePath(c.Request.URL.Path) {
+		info.Action = constant.TaskActionReference2Image
+		modelName := info.UpstreamModelName
+		if modelName == "" {
+			modelName = req.Model
+		}
+		if strings.Contains(modelName, "viduq1") && !req.HasImage() {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("viduq1 requires 1 to 7 images"), "missing_images", http.StatusBadRequest)
+		}
+		if len(req.Images) > maxReferenceImages {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("images must have at most %d items", maxReferenceImages), "invalid_images", http.StatusBadRequest)
+		}
+		return nil
+	}
 	action := constant.TaskActionTextGenerate
 	if meatAction, ok := req.Metadata["action"]; ok {
 		action, _ = meatAction.(string)
@@ -119,6 +149,21 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 	}
 	req := v.(relaycommon.TaskSubmitReq)
 
+	if info.Action == constant.TaskActionReference2Image {
+		var imgBody imageRequestPayload
+		if err := common.UnmarshalBodyReusable(c, &imgBody); err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(imgBody.Model) == "" {
+			imgBody.Model = info.UpstreamModelName
+		}
+		data, err := common.Marshal(&imgBody)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+
 	body, err := a.convertToRequestPayload(&req, info)
 	if err != nil {
 		return nil, err
@@ -141,6 +186,8 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	var path string
 	switch info.Action {
+	case constant.TaskActionReference2Image:
+		path = "/reference2image"
 	case constant.TaskActionGenerate:
 		path = "/img2video"
 	case constant.TaskActionFirstTailGenerate:
@@ -226,6 +273,21 @@ func (a *TaskAdaptor) GetChannelName() string {
 // ============================
 // helpers
 // ============================
+
+func isAsyncImagePath(path string) bool {
+	return strings.Contains(path, "/v1/async/images")
+}
+
+func parseImageRequestPayload(data []byte, upstreamModel string) (*imageRequestPayload, error) {
+	var body imageRequestPayload
+	if err := common.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(body.Model) == "" {
+		body.Model = upstreamModel
+	}
+	return &body, nil
+}
 
 func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq, info *relaycommon.RelayInfo) (*requestPayload, error) {
 	r := requestPayload{
