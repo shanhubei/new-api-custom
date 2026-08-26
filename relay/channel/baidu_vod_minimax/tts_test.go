@@ -34,8 +34,29 @@ func TestConvertOpenAIAudioToTTSRequestMapsFields(t *testing.T) {
 	assert.Equal(t, "speech-2.8-hd", body["model"])
 	assert.Equal(t, "你好", body["text"])
 	assert.Equal(t, "url", body["output_format"])
+	assert.Equal(t, "Boyan_new_hd", body["voiceId"])
 	vs := body["voice_setting"].(map[string]any)
 	assert.Equal(t, "Boyan_new_hd", vs["voice_id"])
+}
+
+func TestConvertOpenAIAudioToTTSRequestMetadataDoesNotClearVoice(t *testing.T) {
+	req := dto.AudioRequest{
+		Model:          "speech-2.8-hd",
+		Input:          "你好",
+		Voice:          "Boyan_new_hd",
+		ResponseFormat: "mp3",
+		Metadata:       []byte(`{"voice_setting":{"emotion":"calm","vol":1.0}}`),
+	}
+	info := &relaycommon.RelayInfo{OriginModelName: "speech-2.8-hd"}
+	raw, _, err := ConvertOpenAIAudioToTTSRequest(info, req)
+	require.NoError(t, err)
+
+	var body map[string]any
+	require.NoError(t, common.Unmarshal(raw, &body))
+	assert.Equal(t, "Boyan_new_hd", body["voiceId"])
+	vs := body["voice_setting"].(map[string]any)
+	assert.Equal(t, "Boyan_new_hd", vs["voice_id"])
+	assert.Equal(t, "calm", vs["emotion"])
 }
 
 func TestConvertOpenAIAudioToTTSRequestPrefersUpstreamModelName(t *testing.T) {
@@ -71,7 +92,8 @@ func TestHandleTTSResponseURL(t *testing.T) {
 	require.Nil(t, err)
 	u := usage.(*dto.Usage)
 	assert.Equal(t, 20, u.TotalTokens)
-	assert.Equal(t, http.StatusFound, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"url":"https://example.com/a.mp3"}`, w.Body.String())
 }
 
 func TestHandleTTSResponseErrorStatus(t *testing.T) {
@@ -84,4 +106,65 @@ func TestHandleTTSResponseErrorStatus(t *testing.T) {
 	usage, err := HandleTTSResponse(c, resp, info)
 	require.NotNil(t, err)
 	assert.Nil(t, usage)
+}
+
+func TestHandleTTSResponseCamelCase(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/audio/speech", nil)
+	body := `{"data":{"audio":"https://example.com/a.mp3","status":1},"extraInfo":{"usageCharacters":18},"baseResp":{"statusCode":0,"statusMsg":"OK"}}`
+	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{}
+	usage, err := HandleTTSResponse(c, resp, info)
+	require.Nil(t, err)
+	u := usage.(*dto.Usage)
+	assert.Equal(t, 18, u.TotalTokens)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"url":"https://example.com/a.mp3"}`, w.Body.String())
+}
+
+func TestHandleTTSResponseEmptyAudioIncludesBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := `{"data":{"audio":"","status":0},"base_resp":{"status_code":0,"status_msg":"OK"},"note":"empty-audio-fixture"}`
+	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{}
+	usage, err := HandleTTSResponse(c, resp, info)
+	require.NotNil(t, err)
+	assert.Nil(t, usage)
+	assert.Contains(t, err.Error(), "empty-audio-fixture")
+}
+
+func TestHandleTTSResponseTopLevelURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/audio/speech", nil)
+	body := `{"url":"https://bce-multimedia.cdn.bcebos.com/tmp/minimax/demo.mp3"}`
+	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{}
+	usage, err := HandleTTSResponse(c, resp, info)
+	require.Nil(t, err)
+	require.NotNil(t, usage)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"url":"https://bce-multimedia.cdn.bcebos.com/tmp/minimax/demo.mp3"}`, w.Body.String())
+}
+
+func TestHandleTTSResponseHexBinary(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/audio/speech", nil)
+	// "ID3" mp3-like header bytes as hex
+	body := `{"data":{"audio":"494433","status":1},"extra_info":{"usage_characters":3},"base_resp":{"status_code":0,"status_msg":"OK"}}`
+	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{}
+	usage, err := HandleTTSResponse(c, resp, info)
+	require.Nil(t, err)
+	require.NotNil(t, usage)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "audio/mpeg", w.Header().Get("Content-Type"))
+	assert.Equal(t, []byte{0x49, 0x44, 0x33}, w.Body.Bytes())
 }
