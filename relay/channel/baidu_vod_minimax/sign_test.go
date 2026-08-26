@@ -1,6 +1,10 @@
 package baidu_vod_minimax
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -10,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const goldenAuthorization = "bce-auth-v1/ak-test/2026-06-12T02:45:13Z/1800/host/b6952868b8ae3da6a73cd732e90d620f23f6ae3ecce40832c97fdcd729f8902f"
+
 func TestParseAccessKeys(t *testing.T) {
 	ak, sk, err := ParseAccessKeys("ak123|sk456")
 	require.NoError(t, err)
@@ -18,6 +24,47 @@ func TestParseAccessKeys(t *testing.T) {
 
 	_, _, err = ParseAccessKeys("only-one")
 	require.Error(t, err)
+}
+
+func TestSignAuthorizationGoldenVector(t *testing.T) {
+	now := time.Date(2026, 6, 12, 2, 45, 13, 0, time.UTC)
+	auth, err := SignAuthorization(
+		"ak-test", "sk-test",
+		http.MethodPost, "vod.bj.baidubce.com", "/v2/tts", "",
+		now, 1800,
+	)
+	require.NoError(t, err)
+
+	authPrefix := "bce-auth-v1/ak-test/2026-06-12T02:45:13Z/1800"
+	canonicalRequest := "POST\n/v2/tts\n\nhost:vod.bj.baidubce.com"
+	signingKeyMAC := hmac.New(sha256.New, []byte("sk-test"))
+	signingKeyMAC.Write([]byte(authPrefix))
+	signingKey := hex.EncodeToString(signingKeyMAC.Sum(nil))
+	sigMAC := hmac.New(sha256.New, []byte(signingKey))
+	sigMAC.Write([]byte(canonicalRequest))
+	expectedSig := hex.EncodeToString(sigMAC.Sum(nil))
+	expectedAuth := fmt.Sprintf("%s/host/%s", authPrefix, expectedSig)
+
+	assert.Equal(t, expectedAuth, auth)
+	assert.Equal(t, goldenAuthorization, auth)
+}
+
+func TestSignAuthorizationTrimsHost(t *testing.T) {
+	now := time.Date(2026, 6, 12, 2, 45, 13, 0, time.UTC)
+	withSpace, err := SignAuthorization(
+		"ak-test", "sk-test",
+		http.MethodPost, "  vod.bj.baidubce.com  ", "/v2/tts", "",
+		now, 1800,
+	)
+	require.NoError(t, err)
+	withoutSpace, err := SignAuthorization(
+		"ak-test", "sk-test",
+		http.MethodPost, "vod.bj.baidubce.com", "/v2/tts", "",
+		now, 1800,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, withoutSpace, withSpace)
+	assert.Equal(t, goldenAuthorization, withSpace)
 }
 
 func TestSignAuthorizationContainsHostSignedHeader(t *testing.T) {

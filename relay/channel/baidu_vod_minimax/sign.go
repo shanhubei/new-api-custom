@@ -57,6 +57,7 @@ func SignAuthorization(ak, sk, method, host, canonicalURI, canonicalQuery string
 	if expirationSec <= 0 {
 		expirationSec = defaultExpirationSeconds
 	}
+	host = strings.TrimSpace(host)
 	if canonicalURI == "" {
 		canonicalURI = "/"
 	}
@@ -88,7 +89,7 @@ func ApplyBCEAuth(header *http.Header, apiKey, method, requestURL string, now ti
 	if err != nil {
 		return fmt.Errorf("parse request url: %w", err)
 	}
-	host := u.Host
+	host := strings.TrimSpace(u.Host)
 	if host == "" {
 		return fmt.Errorf("request url missing host")
 	}
