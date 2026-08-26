@@ -35,7 +35,8 @@ var defaultVendorRules = map[string]string{
 	"kling":    "快手",
 	"jimeng":   "即梦",
 	"vidu":           "Vidu",
-	"baidu_vod_vidu": "Baidu VOD Vidu",
+	"baidu_vod_vidu":    "Baidu VOD Vidu",
+	"baidu_vod_minimax": "Baidu VOD MiniMax",
 }
 
 // 供应商默认图标映射

@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay"
 	"github.com/QuantumNous/new-api/relay/channel/ai360"
+	baidu_vod_minimax "github.com/QuantumNous/new-api/relay/channel/baidu_vod_minimax"
 	"github.com/QuantumNous/new-api/relay/channel/lingyiwanwu"
 	"github.com/QuantumNous/new-api/relay/channel/minimax"
 	"github.com/QuantumNous/new-api/relay/channel/moonshot"
@@ -78,6 +79,14 @@ func init() {
 			Object:  "model",
 			Created: 1626777600,
 			OwnedBy: minimax.ChannelName,
+		})
+	}
+	for _, modelName := range baidu_vod_minimax.ModelList {
+		openAIModels = append(openAIModels, dto.OpenAIModels{
+			Id:      modelName,
+			Object:  "model",
+			Created: 1626777600,
+			OwnedBy: baidu_vod_minimax.ChannelName,
 		})
 	}
 	for modelName, _ := range constant.MidjourneyModel2Action {
