@@ -170,6 +170,11 @@ export const CHANNEL_OPTIONS = [
     label: 'Baidu VOD Vidu',
   },
   {
+    value: 60,
+    color: 'blue',
+    label: 'Baidu VOD MiniMax',
+  },
+  {
     value: 53,
     color: 'blue',
     label: 'SubModel',

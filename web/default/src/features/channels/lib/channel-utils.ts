@@ -99,6 +99,7 @@ export function getChannelTypeIcon(type: number): string {
     51: 'Jimeng', // Jimeng
     52: 'Vidu', // Vidu
     59: 'Baidu', // Baidu VOD Vidu
+    60: 'Baidu', // Baidu VOD MiniMax
     36: 'Suno', // SunoAPI
     55: 'OpenAI', // Sora
     54: 'Doubao', // DoubaoVideo
