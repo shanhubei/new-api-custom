@@ -38,6 +38,27 @@ func TestConvertOpenAIAudioToTTSRequestMapsFields(t *testing.T) {
 	assert.Equal(t, "Boyan_new_hd", vs["voice_id"])
 }
 
+func TestConvertOpenAIAudioToTTSRequestPrefersUpstreamModelName(t *testing.T) {
+	req := dto.AudioRequest{
+		Model:          "baidu-speech-2.8-hd",
+		Input:          "你好",
+		Voice:          "Boyan_new_hd",
+		ResponseFormat: "mp3",
+	}
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "baidu-speech-2.8-hd",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "speech-2.8-hd",
+		},
+	}
+	raw, _, err := ConvertOpenAIAudioToTTSRequest(info, req)
+	require.NoError(t, err)
+
+	var body map[string]any
+	require.NoError(t, common.Unmarshal(raw, &body))
+	assert.Equal(t, "speech-2.8-hd", body["model"])
+}
+
 func TestHandleTTSResponseURL(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

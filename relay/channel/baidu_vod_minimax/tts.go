@@ -95,8 +95,13 @@ func ConvertOpenAIAudioToTTSRequest(info *relaycommon.RelayInfo, request dto.Aud
 	speed := lo.FromPtrOr(request.Speed, 0.0)
 	audioFormat := request.ResponseFormat
 
+	modelName := info.OriginModelName
+	if info.ChannelMeta != nil && info.ChannelMeta.UpstreamModelName != "" {
+		modelName = info.ChannelMeta.UpstreamModelName
+	}
+
 	ttsRequest := MiniMaxTTSRequest{
-		Model: info.OriginModelName,
+		Model: modelName,
 		Text:  request.Input,
 		VoiceSetting: VoiceSetting{
 			VoiceID: voiceID,
