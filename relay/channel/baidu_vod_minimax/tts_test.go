@@ -160,15 +160,34 @@ func TestHandleTTSResponsePassthroughOfficialBody(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/v1/baidu-vod/tts", nil)
 	c.Set("baidu_vod_tts_json_url", true)
-	body := `{"data":{"audio":"https://bce-multimedia.cdn.bcebos.com/tmp/minimax/xxx.mp3","status":1},"trace_id":"trace-abc123","extra_info":{"usage_characters":20,"audio_length":3200,"audio_sample_rate":32000,"audio_size":51200,"bitrate":128,"audio_format":"mp3","audio_channel":1,"word_count":18},"base_resp":{"status_code":0,"status_msg":"OK"}}`
+	body := `{"data":{"audio":"https://bce-multimedia.cdn.bcebos.com/tmp/minimax/xxx.mp3","status":1},"trace_id":"trace-abc123","extra_info":{"usage_characters":20,"audio_length":3200,"audio_sample_rate":32000,"audio_size":51200,"bitrate":128,"audio_format":"mp3","audio_channel":1,"word_count":18},"base_resp":{"status_code":0,"status_msg":"OK"},"credits":12}`
 	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
 	info := &relaycommon.RelayInfo{}
 	usage, err := HandleTTSResponse(c, resp, info)
 	require.Nil(t, err)
 	u := usage.(*dto.Usage)
-	assert.Equal(t, 20, u.TotalTokens)
+	assert.Equal(t, 12, u.TotalTokens)
+	assert.True(t, info.PriceData.UsePrice)
+	assert.InDelta(t, 1.2, info.PriceData.ModelPrice, 1e-9)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, body, w.Body.String())
+}
+
+func TestHandleTTSResponseUsageCharactersFallback(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/baidu-vod/tts", nil)
+	c.Set("baidu_vod_tts_json_url", true)
+	body := `{"data":{"audio":"https://example.com/a.mp3","status":1},"extra_info":{"usage_characters":20},"base_resp":{"status_code":0,"status_msg":"OK"}}`
+	resp := &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{}
+	usage, err := HandleTTSResponse(c, resp, info)
+	require.Nil(t, err)
+	u := usage.(*dto.Usage)
+	assert.Equal(t, 20, u.PromptTokens)
+	assert.Equal(t, 20, u.TotalTokens)
+	assert.False(t, info.PriceData.UsePrice)
 }
 
 func TestHandleTTSResponseHexBinary(t *testing.T) {

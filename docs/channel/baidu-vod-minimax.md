@@ -25,7 +25,10 @@
    - `speech-2.6-hd` / `speech-2.6-turbo`
    - `speech-02-hd` / `speech-02-turbo`
    - `speech-01-hd` / `speech-01-turbo`
-5. 为模型配置单价（沿用现有 TTS 按字符/用量计费路径；**不**按上游 credits 差额结算）。
+5. **扣费**：优先按上游返回的 **`credits`（积分）** 结算，公式与 Vidu 对口型一致：  
+   `(credits / 10) × QuotaPerUnit × 分组倍率`（**1 元 = 10 积分**）。  
+   若响应无 `credits`，则回退为 `extra_info.usage_characters` × 模型倍率。  
+   预扣仍按后台模型价/倍率；成功后按实际上游用量多退少补。
 
 ### 与官方 MiniMax 防混
 
@@ -109,6 +112,14 @@
 ```
 
 音频地址：`data.audio`。若上游偶发简化体 `{"url":"..."}`，也会原样返回该体。
+
+### 扣费说明
+
+| 优先级 | 上游字段 | 结算方式 |
+|--------|----------|----------|
+| 1 | `credits`（顶层 / `data` / `extra_info`） | `(credits/10)×QuotaPerUnit×分组倍率` |
+| 2 | `extra_info.usage_characters` | 按模型倍率 × 字符数 |
+| 3 | 均无 | 按请求 `input` 本地估算字符 |
 
 `/v1/audio/speech` 走本渠道时仍按兼容逻辑（URL→302，hex→音频二进制），不改其它渠道。
 

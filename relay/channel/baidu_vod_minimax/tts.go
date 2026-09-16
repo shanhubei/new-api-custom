@@ -76,6 +76,7 @@ type MiniMaxTTSResponse struct {
 	Data      MiniMaxTTSData   `json:"data"`
 	ExtraInfo MiniMaxExtraInfo `json:"extra_info"`
 	TraceID   string           `json:"trace_id,omitempty"`
+	Credits   int64            `json:"credits,omitempty"`
 	BaseResp  MiniMaxBaseResp  `json:"base_resp"`
 }
 
@@ -93,6 +94,7 @@ type MiniMaxExtraInfo struct {
 	AudioChannel    int    `json:"audio_channel,omitempty"`
 	UsageCharacters int64  `json:"usage_characters,omitempty"`
 	WordCount       int64  `json:"word_count,omitempty"`
+	Credits         int64  `json:"credits,omitempty"`
 }
 
 type MiniMaxBaseResp struct {
@@ -124,6 +126,7 @@ type parsedTTSResponse struct {
 	Audio           string
 	DataStatus      int
 	UsageCharacters int64
+	Credits         int64
 	ExtraInfo       MiniMaxExtraInfo
 	TraceID         string
 	StatusCode      int64
@@ -141,6 +144,10 @@ func parseTTSResponse(body []byte) (parsedTTSResponse, error) {
 	out.DataStatus = snake.Data.Status
 	out.ExtraInfo = snake.ExtraInfo
 	out.UsageCharacters = snake.ExtraInfo.UsageCharacters
+	out.Credits = snake.Credits
+	if out.Credits == 0 {
+		out.Credits = snake.ExtraInfo.Credits
+	}
 	out.TraceID = snake.TraceID
 	out.StatusCode = snake.BaseResp.StatusCode
 	out.StatusMsg = snake.BaseResp.StatusMsg
@@ -217,7 +224,14 @@ func parseTTSResponse(body []byte) (parsedTTSResponse, error) {
 		}
 	}
 
+	finalizeParsedTTSResponse(body, &out)
 	return out, nil
+}
+
+func finalizeParsedTTSResponse(body []byte, out *parsedTTSResponse) {
+	if out.Credits <= 0 {
+		out.Credits = parseCreditsFromBody(body)
+	}
 }
 
 func truncateForError(body []byte, max int) string {
@@ -357,10 +371,24 @@ func HandleTTSResponse(c *gin.Context, resp *http.Response, info *relaycommon.Re
 	if usageChars == 0 {
 		usageChars = int64(info.GetEstimatePromptTokens())
 	}
+
+	// 优先按上游 credits 结算（与 Vidu 相同：1 元 = 10 积分）；否则回退 usage_characters 按倍率计费。
+	promptTokens := int(usageChars)
+	totalTokens := int(usageChars)
+	if ApplyCreditsBilling(info, ttsResp.Credits) {
+		promptTokens = int(ttsResp.Credits)
+		totalTokens = int(ttsResp.Credits)
+		c.Set("baidu_vod_tts_credits", ttsResp.Credits)
+	} else {
+		// 必须用上游计费字符参与 PromptTokens，避免只按本地估算扣费。
+		promptTokens = int(usageChars)
+		totalTokens = int(usageChars)
+	}
+
 	usage = &dto.Usage{
-		PromptTokens:     info.GetEstimatePromptTokens(),
+		PromptTokens:     promptTokens,
 		CompletionTokens: 0,
-		TotalTokens:      int(usageChars),
+		TotalTokens:      totalTokens,
 	}
 
 	return usage, nil
