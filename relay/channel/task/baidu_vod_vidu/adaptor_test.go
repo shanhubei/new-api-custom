@@ -206,3 +206,118 @@ func TestValidateViduq1WithoutImagesFails(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
 }
 
+func TestBuildRequestURLLipSync(t *testing.T) {
+	adaptor := &TaskAdaptor{}
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelBaseUrl: "http://vod.bj.baidubce.com/v3/aigc/vd",
+			ChannelType:    constant.ChannelTypeBaiduVodVidu,
+		},
+		TaskRelayInfo: &relaycommon.TaskRelayInfo{
+			Action: constant.TaskActionLipSync,
+		},
+	}
+	adaptor.Init(info)
+
+	url, err := adaptor.BuildRequestURL(info)
+	require.NoError(t, err)
+	assert.Equal(t, "http://vod.bj.baidubce.com/v3/aigc/vd/ent/v2/lip-sync", url)
+}
+
+func TestLipSyncPayloadOmitsModel(t *testing.T) {
+	raw := []byte(`{
+		"model":"vidu-lip-sync",
+		"video_url":"https://example.com/a.mp4",
+		"text":"你好",
+		"voice_id":"wumei_yujie",
+		"speed":1.0,
+		"volume":2
+	}`)
+	body, err := parseLipSyncRequestPayload(raw)
+	require.NoError(t, err)
+	s, err := common.Marshal(body)
+	require.NoError(t, err)
+	out := string(s)
+	assert.NotContains(t, out, `"model"`)
+	assert.Contains(t, out, `"video_url":"https://example.com/a.mp4"`)
+	assert.Contains(t, out, `"text":"你好"`)
+	assert.Contains(t, out, `"voice_id":"wumei_yujie"`)
+}
+
+func TestValidateLipSyncRequiresVideoURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	adaptor := &TaskAdaptor{}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := bytes.NewBufferString(`{"model":"vidu-lip-sync","text":"hello"}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/async/lip-sync", body)
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelType:       constant.ChannelTypeBaiduVodVidu,
+			UpstreamModelName: "vidu-lip-sync",
+		},
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		OriginModelName: "vidu-lip-sync",
+	}
+	adaptor.Init(info)
+
+	taskErr := adaptor.ValidateRequestAndSetAction(c, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
+}
+
+func TestValidateLipSyncRequiresAudioOrText(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	adaptor := &TaskAdaptor{}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := bytes.NewBufferString(`{"model":"vidu-lip-sync","video_url":"https://example.com/a.mp4"}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/async/lip-sync", body)
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelType:       constant.ChannelTypeBaiduVodVidu,
+			UpstreamModelName: "vidu-lip-sync",
+		},
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		OriginModelName: "vidu-lip-sync",
+	}
+	adaptor.Init(info)
+
+	taskErr := adaptor.ValidateRequestAndSetAction(c, info)
+	require.NotNil(t, taskErr)
+	assert.Equal(t, http.StatusBadRequest, taskErr.StatusCode)
+}
+
+func TestValidateLipSyncSetsAction(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	adaptor := &TaskAdaptor{}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := bytes.NewBufferString(`{"model":"vidu-lip-sync","video_url":"https://example.com/a.mp4","text":"你好"}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/async/lip-sync", body)
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelType:       constant.ChannelTypeBaiduVodVidu,
+			UpstreamModelName: "vidu-lip-sync",
+		},
+		TaskRelayInfo:   &relaycommon.TaskRelayInfo{},
+		OriginModelName: "vidu-lip-sync",
+	}
+	adaptor.Init(info)
+
+	taskErr := adaptor.ValidateRequestAndSetAction(c, info)
+	require.Nil(t, taskErr)
+	assert.Equal(t, constant.TaskActionLipSync, info.Action)
+}
+
+func TestGetModelListIncludesLipSync(t *testing.T) {
+	adaptor := &TaskAdaptor{}
+	assert.Contains(t, adaptor.GetModelList(), "vidu-lip-sync")
+}
+

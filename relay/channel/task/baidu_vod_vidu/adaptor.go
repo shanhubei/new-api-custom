@@ -56,6 +56,17 @@ type imageRequestPayload struct {
 	OffPeak     *bool    `json:"off_peak,omitempty"`
 }
 
+type lipSyncRequestPayload struct {
+	VideoURL    string   `json:"video_url"`
+	AudioURL    string   `json:"audio_url,omitempty"`
+	Text        string   `json:"text,omitempty"`
+	Speed       *float64 `json:"speed,omitempty"`
+	VoiceID     string   `json:"voice_id,omitempty"`
+	RefPhotoURL string   `json:"ref_photo_url,omitempty"`
+	Volume      *int     `json:"volume,omitempty"`
+	CallbackURL string   `json:"callback_url,omitempty"`
+}
+
 const maxReferenceImages = 7
 
 type responsePayload struct {
@@ -71,6 +82,7 @@ type responsePayload struct {
 	MovementAmplitude string   `json:"movement_amplitude"`
 	Payload           string   `json:"payload"`
 	CreatedAt         string   `json:"created_at"`
+	Credits           int      `json:"credits,omitempty"`
 }
 
 type taskResultResponse struct {
@@ -103,6 +115,9 @@ func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycommon.RelayInfo) *dto.TaskError {
+	if isAsyncLipSyncPath(c.Request.URL.Path) {
+		return a.validateLipSyncRequest(c, info)
+	}
 	if err := relaycommon.ValidateBasicTaskRequest(c, info, constant.TaskActionGenerate); err != nil {
 		return err
 	}
@@ -142,6 +157,52 @@ func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycom
 	return nil
 }
 
+func (a *TaskAdaptor) validateLipSyncRequest(c *gin.Context, info *relaycommon.RelayInfo) *dto.TaskError {
+	var raw map[string]any
+	if err := common.UnmarshalBodyReusable(c, &raw); err != nil {
+		return service.TaskErrorWrapperLocal(err, "invalid_request", http.StatusBadRequest)
+	}
+	modelName, _ := raw["model"].(string)
+	if strings.TrimSpace(modelName) == "" {
+		modelName = info.OriginModelName
+	}
+	if strings.TrimSpace(modelName) == "" {
+		return service.TaskErrorWrapperLocal(fmt.Errorf("model is required"), "invalid_request", http.StatusBadRequest)
+	}
+
+	videoURL, _ := raw["video_url"].(string)
+	if strings.TrimSpace(videoURL) == "" {
+		return service.TaskErrorWrapperLocal(fmt.Errorf("video_url is required"), "invalid_request", http.StatusBadRequest)
+	}
+
+	audioURL, _ := raw["audio_url"].(string)
+	text, _ := raw["text"].(string)
+	if strings.TrimSpace(audioURL) == "" && strings.TrimSpace(text) == "" {
+		return service.TaskErrorWrapperLocal(fmt.Errorf("audio_url or text is required"), "invalid_request", http.StatusBadRequest)
+	}
+
+	if v, ok := raw["volume"]; ok && v != nil {
+		vol, ok := v.(float64)
+		if !ok {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("volume must be a number"), "invalid_request", http.StatusBadRequest)
+		}
+		if vol < 0 || vol > 10 {
+			return service.TaskErrorWrapperLocal(fmt.Errorf("volume must be between 0 and 10"), "invalid_request", http.StatusBadRequest)
+		}
+	}
+
+	prompt := strings.TrimSpace(text)
+	if prompt == "" {
+		prompt = "[lip-sync]"
+	}
+	info.Action = constant.TaskActionLipSync
+	c.Set("task_request", relaycommon.TaskSubmitReq{
+		Prompt: prompt,
+		Model:  modelName,
+	})
+	return nil
+}
+
 func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayInfo) (io.Reader, error) {
 	v, exists := c.Get("task_request")
 	if !exists {
@@ -158,6 +219,18 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 			imgBody.Model = info.UpstreamModelName
 		}
 		data, err := common.Marshal(&imgBody)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+
+	if info.Action == constant.TaskActionLipSync {
+		var lipBody lipSyncRequestPayload
+		if err := common.UnmarshalBodyReusable(c, &lipBody); err != nil {
+			return nil, err
+		}
+		data, err := common.Marshal(&lipBody)
 		if err != nil {
 			return nil, err
 		}
@@ -188,6 +261,8 @@ func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, erro
 	switch info.Action {
 	case constant.TaskActionReference2Image:
 		path = "/reference2image"
+	case constant.TaskActionLipSync:
+		path = "/lip-sync"
 	case constant.TaskActionGenerate:
 		path = "/img2video"
 	case constant.TaskActionFirstTailGenerate:
@@ -263,7 +338,7 @@ func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy 
 }
 
 func (a *TaskAdaptor) GetModelList() []string {
-	return []string{"viduq3-pro", "viduq2", "viduq1", "vidu2.0", "vidu1.5"}
+	return []string{"viduq3-pro", "viduq2", "viduq1", "vidu2.0", "vidu1.5", "vidu-lip-sync"}
 }
 
 func (a *TaskAdaptor) GetChannelName() string {
@@ -276,6 +351,18 @@ func (a *TaskAdaptor) GetChannelName() string {
 
 func isAsyncImagePath(path string) bool {
 	return strings.Contains(path, "/v1/async/images")
+}
+
+func isAsyncLipSyncPath(path string) bool {
+	return strings.Contains(path, "/v1/async/lip-sync")
+}
+
+func parseLipSyncRequestPayload(data []byte) (*lipSyncRequestPayload, error) {
+	var body lipSyncRequestPayload
+	if err := common.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
 }
 
 func parseImageRequestPayload(data []byte, upstreamModel string) (*imageRequestPayload, error) {
