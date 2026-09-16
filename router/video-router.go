@@ -24,6 +24,8 @@ func SetVideoRouter(router *gin.Engine) {
 		videoV1Router.GET("/video/generations/:task_id", controller.RelayTaskFetch)
 		videoV1Router.POST("/async/images", controller.RelayTask)
 		videoV1Router.GET("/async/images/:task_id", controller.RelayTaskFetch)
+		videoV1Router.POST("/async/lip-sync", controller.RelayTask)
+		videoV1Router.GET("/async/lip-sync/:task_id", controller.RelayTaskFetch)
 		videoV1Router.POST("/videos/:video_id/remix", controller.RelayTask)
 	}
 	// openai compatible API video routes
