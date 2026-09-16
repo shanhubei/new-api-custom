@@ -75,7 +75,7 @@ type VoiceModify struct {
 type MiniMaxTTSResponse struct {
 	Data      MiniMaxTTSData   `json:"data"`
 	ExtraInfo MiniMaxExtraInfo `json:"extra_info"`
-	TraceID   string           `json:"trace_id"`
+	TraceID   string           `json:"trace_id,omitempty"`
 	BaseResp  MiniMaxBaseResp  `json:"base_resp"`
 }
 
@@ -85,7 +85,14 @@ type MiniMaxTTSData struct {
 }
 
 type MiniMaxExtraInfo struct {
-	UsageCharacters int64 `json:"usage_characters"`
+	AudioLength     int64  `json:"audio_length,omitempty"`
+	AudioSampleRate int64  `json:"audio_sample_rate,omitempty"`
+	AudioSize       int64  `json:"audio_size,omitempty"`
+	Bitrate         int64  `json:"bitrate,omitempty"`
+	AudioFormat     string `json:"audio_format,omitempty"`
+	AudioChannel    int    `json:"audio_channel,omitempty"`
+	UsageCharacters int64  `json:"usage_characters,omitempty"`
+	WordCount       int64  `json:"word_count,omitempty"`
 }
 
 type MiniMaxBaseResp struct {
@@ -97,7 +104,14 @@ type MiniMaxBaseResp struct {
 type minimaxTTSResponseCamel struct {
 	Data      MiniMaxTTSData `json:"data"`
 	ExtraInfo struct {
-		UsageCharacters int64 `json:"usageCharacters"`
+		AudioLength     int64  `json:"audioLength"`
+		AudioSampleRate int64  `json:"audioSampleRate"`
+		AudioSize       int64  `json:"audioSize"`
+		Bitrate         int64  `json:"bitrate"`
+		AudioFormat     string `json:"audioFormat"`
+		AudioChannel    int    `json:"audioChannel"`
+		UsageCharacters int64  `json:"usageCharacters"`
+		WordCount       int64  `json:"wordCount"`
 	} `json:"extraInfo"`
 	TraceID  string `json:"traceId"`
 	BaseResp struct {
@@ -108,7 +122,10 @@ type minimaxTTSResponseCamel struct {
 
 type parsedTTSResponse struct {
 	Audio           string
+	DataStatus      int
 	UsageCharacters int64
+	ExtraInfo       MiniMaxExtraInfo
+	TraceID         string
 	StatusCode      int64
 	StatusMsg       string
 }
@@ -121,18 +138,39 @@ func parseTTSResponse(body []byte) (parsedTTSResponse, error) {
 		return out, err
 	}
 	out.Audio = strings.TrimSpace(snake.Data.Audio)
+	out.DataStatus = snake.Data.Status
+	out.ExtraInfo = snake.ExtraInfo
 	out.UsageCharacters = snake.ExtraInfo.UsageCharacters
+	out.TraceID = snake.TraceID
 	out.StatusCode = snake.BaseResp.StatusCode
 	out.StatusMsg = snake.BaseResp.StatusMsg
 
-	if out.Audio == "" || (out.StatusCode == 0 && out.StatusMsg == "" && out.UsageCharacters == 0) {
+	if out.Audio == "" || (out.StatusCode == 0 && out.StatusMsg == "" && out.UsageCharacters == 0 && out.TraceID == "") {
 		var camel minimaxTTSResponseCamel
 		if err := common.Unmarshal(body, &camel); err == nil {
 			if out.Audio == "" {
 				out.Audio = strings.TrimSpace(camel.Data.Audio)
 			}
+			if out.DataStatus == 0 {
+				out.DataStatus = camel.Data.Status
+			}
 			if out.UsageCharacters == 0 {
 				out.UsageCharacters = camel.ExtraInfo.UsageCharacters
+			}
+			if out.ExtraInfo.UsageCharacters == 0 {
+				out.ExtraInfo = MiniMaxExtraInfo{
+					AudioLength:     camel.ExtraInfo.AudioLength,
+					AudioSampleRate: camel.ExtraInfo.AudioSampleRate,
+					AudioSize:       camel.ExtraInfo.AudioSize,
+					Bitrate:         camel.ExtraInfo.Bitrate,
+					AudioFormat:     camel.ExtraInfo.AudioFormat,
+					AudioChannel:    camel.ExtraInfo.AudioChannel,
+					UsageCharacters: camel.ExtraInfo.UsageCharacters,
+					WordCount:       camel.ExtraInfo.WordCount,
+				}
+			}
+			if out.TraceID == "" {
+				out.TraceID = camel.TraceID
 			}
 			if out.StatusCode == 0 && camel.BaseResp.StatusCode != 0 {
 				out.StatusCode = camel.BaseResp.StatusCode
@@ -296,9 +334,13 @@ func HandleTTSResponse(c *gin.Context, resp *http.Response, info *relaycommon.Re
 		)
 	}
 
-	if strings.HasPrefix(ttsResp.Audio, "http") {
-		// URL 模式直接 JSON 回传，便于客户端取地址；hex 模式仍返回音频二进制。
-		c.JSON(http.StatusOK, gin.H{"url": ttsResp.Audio})
+	wantPassthrough := c.GetBool("baidu_vod_tts_json_url") || strings.HasPrefix(c.Request.URL.Path, "/v1/baidu-vod/tts")
+	if wantPassthrough {
+		// 专用接口：上游 JSON 原样返回（含完整 extra_info 等字段）。
+		c.Data(http.StatusOK, "application/json", body)
+	} else if strings.HasPrefix(ttsResp.Audio, "http") {
+		c.Header("Location", ttsResp.Audio)
+		c.AbortWithStatus(http.StatusFound)
 	} else {
 		audioData, decodeErr := hex.DecodeString(ttsResp.Audio)
 		if decodeErr != nil {
@@ -311,10 +353,14 @@ func HandleTTSResponse(c *gin.Context, resp *http.Response, info *relaycommon.Re
 		c.Data(http.StatusOK, "audio/mpeg", audioData)
 	}
 
+	usageChars := ttsResp.UsageCharacters
+	if usageChars == 0 {
+		usageChars = int64(info.GetEstimatePromptTokens())
+	}
 	usage = &dto.Usage{
 		PromptTokens:     info.GetEstimatePromptTokens(),
 		CompletionTokens: 0,
-		TotalTokens:      int(ttsResp.UsageCharacters),
+		TotalTokens:      int(usageChars),
 	}
 
 	return usage, nil

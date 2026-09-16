@@ -131,6 +131,11 @@ func SetRelayRouter(router *gin.Engine) {
 		httpRouter.POST("/audio/speech", func(c *gin.Context) {
 			controller.Relay(c, types.RelayFormatOpenAIAudio)
 		})
+		// Baidu VOD MiniMax TTS：专用入口，URL 模式 JSON 回传 {"url":"..."}，不占用 /v1/audio/speech 行为
+		httpRouter.POST("/baidu-vod/tts", func(c *gin.Context) {
+			c.Set("baidu_vod_tts_json_url", true)
+			controller.Relay(c, types.RelayFormatOpenAIAudio)
+		})
 
 		// rerank related routes
 		httpRouter.POST("/rerank", func(c *gin.Context) {

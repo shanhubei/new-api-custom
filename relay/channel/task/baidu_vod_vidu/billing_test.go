@@ -29,7 +29,7 @@ func TestAdjustBillingOnCompleteLipSyncUsesCredits(t *testing.T) {
 	}
 
 	actual := adaptor.AdjustBillingOnComplete(task, nil)
-	expected, _ := common.QuotaFromFloatChecked(12 * common.QuotaPerUnit * 1.0)
+	expected, _ := common.QuotaFromFloatChecked(12.0 / 10 * common.QuotaPerUnit * 1.0)
 	assert.Equal(t, expected, actual)
 }
 
@@ -49,7 +49,7 @@ func TestAdjustBillingOnCompleteLipSyncAppliesGroupRatio(t *testing.T) {
 	}
 
 	actual := adaptor.AdjustBillingOnComplete(task, nil)
-	expected, _ := common.QuotaFromFloatChecked(10 * common.QuotaPerUnit * 0.5)
+	expected, _ := common.QuotaFromFloatChecked(10.0 / 10 * common.QuotaPerUnit * 0.5)
 	assert.Equal(t, expected, actual)
 }
 
@@ -70,7 +70,7 @@ func TestAdjustBillingOnCompleteLipSyncFallsBackToPrivateCredits(t *testing.T) {
 	}
 
 	actual := adaptor.AdjustBillingOnComplete(task, nil)
-	expected, _ := common.QuotaFromFloatChecked(8 * common.QuotaPerUnit * 1.0)
+	expected, _ := common.QuotaFromFloatChecked(8.0 / 10 * common.QuotaPerUnit * 1.0)
 	assert.Equal(t, expected, actual)
 }
 

@@ -3,7 +3,8 @@
 **日期：** 2026-08-18  
 **状态：** 已确认  
 **范围：** 百度 VOD Vidu 渠道增加 `reference2image`；新建异步图片 Task 入口  
-**上游文档：** [Vidu 图片生成 / reference2image](https://platform.vidu.cn/docs/reference-to-image)
+**上游文档：** [Vidu 图片生成 / reference2image](https://platform.vidu.cn/docs/reference-to-image)  
+**使用说明：** [docs/channel/baidu-vod-vidu.md](../../channel/baidu-vod-vidu.md)
 
 ## 背景
 

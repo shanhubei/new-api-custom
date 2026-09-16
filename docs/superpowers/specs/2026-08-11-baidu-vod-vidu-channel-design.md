@@ -2,7 +2,8 @@
 
 **日期：** 2026-08-11  
 **状态：** 已确认  
-**范围：** 新增 Task 渠道类型「百度 VOD Vidu」（Vidu 协议透传）
+**范围：** 新增 Task 渠道类型「百度 VOD Vidu」（Vidu 协议透传）  
+**使用说明：** [docs/channel/baidu-vod-vidu.md](../../channel/baidu-vod-vidu.md)
 
 ## 背景
 

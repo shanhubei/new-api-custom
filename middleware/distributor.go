@@ -410,6 +410,10 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 			}
 		}
 	}
+	if strings.HasPrefix(c.Request.URL.Path, "/v1/baidu-vod/tts") {
+		c.Set("relay_mode", relayconstant.RelayModeAudioSpeech)
+		c.Set("baidu_vod_tts_json_url", true)
+	}
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/audio") {
 		relayMode := relayconstant.RelayModeAudioSpeech
 		if strings.HasPrefix(c.Request.URL.Path, "/v1/audio/speech") {

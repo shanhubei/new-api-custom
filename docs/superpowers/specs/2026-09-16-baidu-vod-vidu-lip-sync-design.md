@@ -3,7 +3,8 @@
 **日期：** 2026-09-16  
 **状态：** 已确认  
 **范围：** 百度 VOD Vidu 渠道增加对口型异步任务  
-**上游文档：** [Vidu 对口型 / lip-sync](https://platform.vidu.cn/docs/lip-sync)
+**上游文档：** [Vidu 对口型 / lip-sync](https://platform.vidu.cn/docs/lip-sync)  
+**使用说明：** [docs/channel/baidu-vod-vidu.md](../../channel/baidu-vod-vidu.md)
 
 ## 背景
 
@@ -22,7 +23,7 @@
 2. 请求体对齐官网字段；另加网关 `model`（不发给上游）。
 3. 仅百度 VOD Vidu 渠道处理该入口。
 4. 创建/查询响应形态与现有视频 Task / async images 对齐。
-5. 预扣按模型单价；成功后按上游 `credits` 差额结算（1 积分 = 1 元人民币对应额度）。
+5. 预扣按模型单价；成功后按上游 `credits` 差额结算（**1 元 = 10 积分**）。
 
 ## 非目标
 
@@ -43,7 +44,7 @@
 | 请求字段 | 完整对齐官网 |
 | 校验 | 跳过 `ValidateBasicTaskRequest`（强制 prompt）；自定义校验 |
 | 预扣 | `ModelPrice × QuotaPerUnit × 分组倍率` |
-| 结算 | `credits × QuotaPerUnit × 分组倍率`，多退少补 |
+| 结算 | `(credits / 10) × QuotaPerUnit × 分组倍率`，多退少补 |
 | 失败 | 退预扣 |
 | credits 缺失/≤0 | 保持预扣 |
 
@@ -130,14 +131,14 @@ GET /v1/async/lip-sync/:task_id
 
 ## 扣费
 
-系统额度：`金额（元）× QuotaPerUnit`（默认 `QuotaPerUnit = 500000`）。约定 **1 Vidu 积分 = 1 元人民币**。
+系统额度：`金额（元）× QuotaPerUnit`（默认 `QuotaPerUnit = 500000`）。约定 **1 元人民币 = 10 Vidu 积分**（1 积分 = 0.1 元）。
 
 1. **预扣（提交成功）**  
    `quota_pre = ModelPrice(vidu-lip-sync) × QuotaPerUnit × GroupRatio`
 
 2. **成功结算**（`AdjustBillingOnComplete`）  
    从任务数据读取 `credits`：  
-   `quota_actual = credits × QuotaPerUnit × GroupRatio`（`QuotaFromFloatChecked`）  
+   `quota_actual = (credits / 10) × QuotaPerUnit × GroupRatio`（`QuotaFromFloatChecked`）  
    再 `RecalculateTaskQuota`：相对预扣多退少补。  
    现有 `settleTaskBillingOnComplete` **优先**调用 `AdjustBillingOnComplete`，返回正数即结算，不因 `PerCallBilling` 跳过。
 
@@ -174,7 +175,7 @@ GET /v1/async/lip-sync/:task_id
 
 1. 单测：URL、上游无 model、缺 video_url / 双空驱动 400、credits→额度公式、既有测试仍过。  
 2. 不要求 CI 打真网。  
-3. 人工：配 `vidu-lip-sync` 单价 → 创建拿 task_id → 查询 SUCCESS 且 result_url → 日志额度与 credits×QuotaPerUnit×分组 一致。
+3. 人工：配 `vidu-lip-sync` 单价 → 创建拿 task_id → 查询 SUCCESS 且 result_url → 日志额度与 (credits/10)×QuotaPerUnit×分组 一致。
 
 ## 风险
 

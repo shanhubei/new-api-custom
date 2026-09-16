@@ -7,8 +7,11 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 )
 
+// lipSyncCreditsPerYuan: 1 元人民币 = 10 上游积分 → 1 积分 = 0.1 元。
+const lipSyncCreditsPerYuan = 10
+
 // AdjustBillingOnComplete settles lip-sync by upstream credits.
-// 1 credit = 1 RMB → quota = credits × QuotaPerUnit × GroupRatio.
+// 1 元 = 10 积分 → quota = (credits / 10) × QuotaPerUnit × GroupRatio.
 // Returns 0 to keep pre-charge when credits missing or action is not lip-sync.
 func (a *TaskAdaptor) AdjustBillingOnComplete(task *model.Task, _ *relaycommon.TaskInfo) int {
 	if task == nil || task.Action != constant.TaskActionLipSync {
@@ -28,7 +31,9 @@ func (a *TaskAdaptor) AdjustBillingOnComplete(task *model.Task, _ *relaycommon.T
 		groupRatio = bc.GroupRatio
 	}
 
-	actual, _ := common.QuotaFromFloatChecked(float64(credits) * common.QuotaPerUnit * groupRatio)
+	actual, _ := common.QuotaFromFloatChecked(
+		float64(credits) / float64(lipSyncCreditsPerYuan) * common.QuotaPerUnit * groupRatio,
+	)
 	return actual
 }
 
