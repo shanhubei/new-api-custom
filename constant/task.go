@@ -17,6 +17,7 @@ const (
 	TaskActionReferenceGenerate = "referenceGenerate"
 	TaskActionRemix             = "remixGenerate"
 	TaskActionReference2Image   = "reference2image"
+	TaskActionLipSync           = "lip-sync"
 )
 
 var SunoModel2Action = map[string]string{

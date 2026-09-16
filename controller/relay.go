@@ -595,6 +595,14 @@ func RelayTask(c *gin.Context) {
 		task.Quota = result.Quota
 		task.Data = result.TaskData
 		task.Action = relayInfo.Action
+		if len(result.TaskData) > 0 {
+			var createCredits struct {
+				Credits int `json:"credits"`
+			}
+			if err := common.Unmarshal(result.TaskData, &createCredits); err == nil && createCredits.Credits > 0 {
+				task.PrivateData.UpstreamCredits = createCredits.Credits
+			}
+		}
 		if insertErr := task.Insert(); insertErr != nil {
 			common.SysError("insert task error: " + insertErr.Error())
 		}
